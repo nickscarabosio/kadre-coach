@@ -4,8 +4,8 @@ import { useState } from 'react'
 import { Reflection, SessionNote, Message } from '@/types/database'
 import { format } from 'date-fns'
 import { Send } from 'lucide-react'
-import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
+import { sendMessage } from './actions'
 
 interface ClientTabsProps {
   clientId: string
@@ -19,7 +19,6 @@ export function ClientTabs({ clientId, reflections, sessionNotes, messages }: Cl
   const [newMessage, setNewMessage] = useState('')
   const [sendingMessage, setSendingMessage] = useState(false)
   const router = useRouter()
-  const supabase = createClient()
 
   const tabs = [
     { id: 'reflections' as const, name: 'Check-ins', count: reflections.length },
@@ -32,19 +31,7 @@ export function ClientTabs({ clientId, reflections, sessionNotes, messages }: Cl
     if (!newMessage.trim()) return
 
     setSendingMessage(true)
-    const { data: { user } } = await supabase.auth.getUser()
-
-    if (!user) {
-      setSendingMessage(false)
-      return
-    }
-
-    await supabase.from('messages').insert({
-      coach_id: user.id,
-      client_id: clientId,
-      content: newMessage,
-    })
-
+    await sendMessage(clientId, newMessage)
     setNewMessage('')
     setSendingMessage(false)
     router.refresh()
