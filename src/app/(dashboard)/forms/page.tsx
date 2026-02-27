@@ -1,23 +1,25 @@
 import { createClient } from '@/lib/supabase/server'
+import { getCoachId } from '@/lib/supabase/get-coach-id'
 import Link from 'next/link'
 import { FileText, Globe, FileEdit } from 'lucide-react'
 import { AddFormButton } from './add-form-button'
 
 export default async function FormsPage() {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const coachId = await getCoachId(supabase)
+  if (!coachId) return null
 
-  const { data: forms } = user ? await supabase
+  const { data: forms } = await supabase
     .from('forms')
     .select('*')
-    .eq('coach_id', user.id)
-    .order('created_at', { ascending: false }) : { data: null }
+    .eq('coach_id', coachId)
+    .order('created_at', { ascending: false })
 
   // Get submission counts
-  const { data: submissions } = user ? await supabase
+  const { data: submissions } = await supabase
     .from('form_submissions')
     .select('form_id')
-    .in('form_id', forms?.map(f => f.id) || []) : { data: null }
+    .in('form_id', forms?.map(f => f.id) || [])
 
   const submissionCounts = (submissions || []).reduce((acc, s) => {
     acc[s.form_id] = (acc[s.form_id] || 0) + 1

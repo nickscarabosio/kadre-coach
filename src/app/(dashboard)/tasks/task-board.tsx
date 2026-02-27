@@ -48,11 +48,14 @@ export function TaskBoard() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
 
+    const { data: coach } = await supabase.from('coaches').select('parent_coach_id').eq('id', user.id).single()
+    const coachId = coach?.parent_coach_id || user.id
+
     const [tasksRes, clientsRes, sectionsRes, labelsRes, assignmentsRes] = await Promise.all([
-      supabase.from('tasks').select('*').eq('coach_id', user.id).order('sort_order').order('created_at', { ascending: false }),
-      supabase.from('clients').select('*').eq('coach_id', user.id),
-      supabase.from('task_sections').select('*').eq('coach_id', user.id).order('sort_order'),
-      supabase.from('task_labels').select('*').eq('coach_id', user.id).order('name'),
+      supabase.from('tasks').select('*').eq('coach_id', coachId).order('sort_order').order('created_at', { ascending: false }),
+      supabase.from('clients').select('*').eq('coach_id', coachId),
+      supabase.from('task_sections').select('*').eq('coach_id', coachId).order('sort_order'),
+      supabase.from('task_labels').select('*').eq('coach_id', coachId).order('name'),
       supabase.from('task_label_assignments').select('task_id, label_id'),
     ])
 

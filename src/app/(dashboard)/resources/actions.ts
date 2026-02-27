@@ -1,13 +1,14 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { getCoachId } from '@/lib/supabase/get-coach-id'
 import { revalidatePath } from 'next/cache'
 
 export async function createResource(formData: FormData) {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const coachId = await getCoachId(supabase)
 
-  if (!user) return { error: 'Not authenticated' }
+  if (!coachId) return { error: 'Not authenticated' }
 
   const file = formData.get('file') as File | null
   let url = formData.get('url') as string
@@ -15,7 +16,7 @@ export async function createResource(formData: FormData) {
 
   if (file && file.size > 0) {
     const ext = file.name.split('.').pop()
-    const path = `${user.id}/${Date.now()}.${ext}`
+    const path = `${coachId}/${Date.now()}.${ext}`
 
     const { error: uploadError } = await supabase.storage
       .from('resources')
@@ -34,7 +35,7 @@ export async function createResource(formData: FormData) {
   if (!url) return { error: 'Please provide a URL or file' }
 
   const { error } = await supabase.from('resources').insert({
-    coach_id: user.id,
+    coach_id: coachId,
     client_id: formData.get('client_id') as string || null,
     name: formData.get('name') as string,
     type: formData.get('type') as string || 'link',
@@ -50,15 +51,15 @@ export async function createResource(formData: FormData) {
 
 export async function deleteResource(resourceId: string) {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const coachId = await getCoachId(supabase)
 
-  if (!user) return { error: 'Not authenticated' }
+  if (!coachId) return { error: 'Not authenticated' }
 
   // Get file path before deleting record
   const { data: resource } = await supabase.from('resources')
     .select('file_path')
     .eq('id', resourceId)
-    .eq('coach_id', user.id)
+    .eq('coach_id', coachId)
     .single()
 
   if (resource?.file_path) {
@@ -68,7 +69,7 @@ export async function deleteResource(resourceId: string) {
   const { error } = await supabase.from('resources')
     .delete()
     .eq('id', resourceId)
-    .eq('coach_id', user.id)
+    .eq('coach_id', coachId)
 
   if (error) return { error: error.message }
 

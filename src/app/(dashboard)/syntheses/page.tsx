@@ -1,16 +1,18 @@
 import { createClient } from '@/lib/supabase/server'
+import { getCoachId } from '@/lib/supabase/get-coach-id'
 import { BookOpen } from 'lucide-react'
 import { SynthesisList } from './synthesis-list'
 
 export default async function SynthesesPage() {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const coachId = await getCoachId(supabase)
+  if (!coachId) return null
 
-  const { data: syntheses } = user ? await supabase
+  const { data: syntheses } = await supabase
     .from('daily_syntheses')
     .select('*')
-    .eq('coach_id', user.id)
-    .order('synthesis_date', { ascending: false }) : { data: null }
+    .eq('coach_id', coachId)
+    .order('synthesis_date', { ascending: false })
 
   return (
     <div className="p-8">

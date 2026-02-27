@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { getCoachId } from '@/lib/supabase/get-coach-id'
 import { Search, Users, Plus, X } from 'lucide-react'
 import Link from 'next/link'
 import type { Contact, Client } from '@/types/database'
@@ -18,13 +19,13 @@ export default function PeoplePage() {
 
   const load = async () => {
     const supabase = createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return
+    const coachId = await getCoachId(supabase)
+    if (!coachId) return
 
     const { data: clientsData } = await supabase
       .from('clients')
       .select('id, company_name')
-      .eq('coach_id', user.id)
+      .eq('coach_id', coachId)
 
     if (!clientsData) return
     setClients(clientsData)

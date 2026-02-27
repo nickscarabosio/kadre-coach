@@ -1,6 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { getCoachId } from '@/lib/supabase/get-coach-id'
 import { revalidatePath } from 'next/cache'
 
 export async function createConversation(data: {
@@ -16,11 +17,14 @@ export async function createConversation(data: {
 
   if (!user) return { error: 'Not authenticated' }
 
+  const coachId = await getCoachId(supabase)
+  if (!coachId) return { error: 'Not authenticated' }
+
   // Create the conversation
   const { data: conversation, error: convError } = await supabase
     .from('conversations')
     .insert({
-      coach_id: user.id,
+      coach_id: coachId,
       subject: data.subject || null,
       conversation_type: data.conversation_type,
       client_id: data.client_id || null,
@@ -48,12 +52,12 @@ export async function createConversation(data: {
     })
   }
 
-  for (const coachId of data.participant_coach_ids || []) {
-    if (coachId !== user.id) {
+  for (const participantCoachId of data.participant_coach_ids || []) {
+    if (participantCoachId !== user.id) {
       participants.push({
         conversation_id: conversation.id,
         participant_type: 'coach',
-        coach_id: coachId,
+        coach_id: participantCoachId,
       })
     }
   }
@@ -77,7 +81,7 @@ export async function createConversation(data: {
 
   if (messageClientId) {
     await supabase.from('messages').insert({
-      coach_id: user.id,
+      coach_id: coachId,
       client_id: messageClientId,
       conversation_id: conversation.id,
       content: data.initial_message,
@@ -95,6 +99,9 @@ export async function sendMessageToConversation(conversationId: string, content:
   const { data: { user } } = await supabase.auth.getUser()
 
   if (!user) return { error: 'Not authenticated' }
+
+  const coachId = await getCoachId(supabase)
+  if (!coachId) return { error: 'Not authenticated' }
 
   // Get the conversation to find client_id
   const { data: conversation } = await supabase
@@ -130,7 +137,7 @@ export async function sendMessageToConversation(conversationId: string, content:
     const { data: anyClient } = await supabase
       .from('clients')
       .select('id')
-      .eq('coach_id', user.id)
+      .eq('coach_id', coachId)
       .limit(1)
       .single()
     clientId = anyClient?.id || null
@@ -139,7 +146,7 @@ export async function sendMessageToConversation(conversationId: string, content:
   if (!clientId) return { error: 'No client found for message' }
 
   const { error } = await supabase.from('messages').insert({
-    coach_id: user.id,
+    coach_id: coachId,
     client_id: clientId,
     conversation_id: conversationId,
     content,
@@ -160,14 +167,14 @@ export async function sendMessageToConversation(conversationId: string, content:
 
 export async function markConversationRead(conversationId: string) {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const coachId = await getCoachId(supabase)
 
-  if (!user) return { error: 'Not authenticated' }
+  if (!coachId) return { error: 'Not authenticated' }
 
   const { error } = await supabase.from('messages')
     .update({ is_read: true })
     .eq('conversation_id', conversationId)
-    .eq('coach_id', user.id)
+    .eq('coach_id', coachId)
     .eq('is_read', false)
 
   if (error) return { error: error.message }

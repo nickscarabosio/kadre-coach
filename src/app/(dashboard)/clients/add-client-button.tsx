@@ -26,8 +26,11 @@ export function AddClientButton() {
       return
     }
 
+    const { data: coach } = await supabase.from('coaches').select('parent_coach_id').eq('id', user.id).single()
+    const coachId = coach?.parent_coach_id || user.id
+
     const { error } = await supabase.from('clients').insert({
-      coach_id: user.id,
+      coach_id: coachId,
       name: formData.get('company_name') as string,
       email: formData.get('email') as string,
       company_name: formData.get('company_name') as string,

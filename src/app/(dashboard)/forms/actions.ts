@@ -1,16 +1,17 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { getCoachId } from '@/lib/supabase/get-coach-id'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 
 export async function createForm(formData: FormData) {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { error: 'Not authenticated' }
+  const coachId = await getCoachId(supabase)
+  if (!coachId) return { error: 'Not authenticated' }
 
   const { data, error } = await supabase.from('forms').insert({
-    coach_id: user.id,
+    coach_id: coachId,
     title: formData.get('title') as string,
     description: formData.get('description') as string || null,
   }).select().single()
@@ -22,8 +23,8 @@ export async function createForm(formData: FormData) {
 
 export async function updateForm(formId: string, data: { title?: string; description?: string; fields?: unknown[]; status?: string }) {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { error: 'Not authenticated' }
+  const coachId = await getCoachId(supabase)
+  if (!coachId) return { error: 'Not authenticated' }
 
   const updateData: Record<string, unknown> = {}
   if (data.title !== undefined) updateData.title = data.title
@@ -31,7 +32,7 @@ export async function updateForm(formId: string, data: { title?: string; descrip
   if (data.fields !== undefined) updateData.fields = JSON.parse(JSON.stringify(data.fields))
   if (data.status !== undefined) updateData.status = data.status
 
-  const { error } = await supabase.from('forms').update(updateData).eq('id', formId).eq('coach_id', user.id)
+  const { error } = await supabase.from('forms').update(updateData).eq('id', formId).eq('coach_id', coachId)
   if (error) return { error: error.message }
   revalidatePath(`/forms/${formId}`)
   revalidatePath('/forms')
@@ -40,24 +41,24 @@ export async function updateForm(formId: string, data: { title?: string; descrip
 
 export async function deleteForm(formId: string) {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { error: 'Not authenticated' }
+  const coachId = await getCoachId(supabase)
+  if (!coachId) return { error: 'Not authenticated' }
 
-  const { error } = await supabase.from('forms').delete().eq('id', formId).eq('coach_id', user.id)
+  const { error } = await supabase.from('forms').delete().eq('id', formId).eq('coach_id', coachId)
   if (error) return { error: error.message }
   redirect('/forms')
 }
 
 export async function duplicateForm(formId: string) {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { error: 'Not authenticated' }
+  const coachId = await getCoachId(supabase)
+  if (!coachId) return { error: 'Not authenticated' }
 
-  const { data: original } = await supabase.from('forms').select('*').eq('id', formId).eq('coach_id', user.id).single()
+  const { data: original } = await supabase.from('forms').select('*').eq('id', formId).eq('coach_id', coachId).single()
   if (!original) return { error: 'Form not found' }
 
   const { error } = await supabase.from('forms').insert({
-    coach_id: user.id,
+    coach_id: coachId,
     title: `${original.title} (Copy)`,
     description: original.description,
     fields: original.fields,
@@ -71,14 +72,14 @@ export async function duplicateForm(formId: string) {
 
 export async function generatePublicLink(formId: string) {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { error: 'Not authenticated' }
+  const coachId = await getCoachId(supabase)
+  if (!coachId) return { error: 'Not authenticated' }
 
   const token = crypto.randomUUID().replace(/-/g, '').slice(0, 24)
   const { error } = await supabase.from('forms').update({
     public_token: token,
     status: 'published',
-  }).eq('id', formId).eq('coach_id', user.id)
+  }).eq('id', formId).eq('coach_id', coachId)
 
   if (error) return { error: error.message }
   revalidatePath(`/forms/${formId}`)
@@ -102,8 +103,8 @@ export async function submitForm(formId: string, data: { submitter_name?: string
 
 export async function getFormSubmissions(formId: string) {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { error: 'Not authenticated', data: null }
+  const coachId = await getCoachId(supabase)
+  if (!coachId) return { error: 'Not authenticated', data: null }
 
   const { data, error } = await supabase
     .from('form_submissions')

@@ -1,6 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { getCoachId } from '@/lib/supabase/get-coach-id'
 import { revalidatePath } from 'next/cache'
 
 export async function createTask(data: {
@@ -17,15 +18,15 @@ export async function createTask(data: {
   recurrence_rule?: string | null
 }) {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const coachId = await getCoachId(supabase)
 
-  if (!user) return { error: 'Not authenticated' }
+  if (!coachId) return { error: 'Not authenticated' }
 
   // Get max sort_order for the section
   const query = supabase
     .from('tasks')
     .select('sort_order')
-    .eq('coach_id', user.id)
+    .eq('coach_id', coachId)
     .order('sort_order', { ascending: false })
     .limit(1)
 
@@ -38,7 +39,7 @@ export async function createTask(data: {
   const { data: lastTask } = await query
 
   const { error } = await supabase.from('tasks').insert({
-    coach_id: user.id,
+    coach_id: coachId,
     title: data.title,
     description: data.description || null,
     due_date: data.due_date || null,
@@ -61,14 +62,14 @@ export async function createTask(data: {
 
 export async function updateTask(taskId: string, data: Record<string, unknown>) {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const coachId = await getCoachId(supabase)
 
-  if (!user) return { error: 'Not authenticated' }
+  if (!coachId) return { error: 'Not authenticated' }
 
   const { error } = await supabase.from('tasks')
     .update(data)
     .eq('id', taskId)
-    .eq('coach_id', user.id)
+    .eq('coach_id', coachId)
 
   if (error) return { error: error.message }
 
@@ -78,9 +79,9 @@ export async function updateTask(taskId: string, data: Record<string, unknown>) 
 
 export async function updateTaskStatus(taskId: string, status: string) {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const coachId = await getCoachId(supabase)
 
-  if (!user) return { error: 'Not authenticated' }
+  if (!coachId) return { error: 'Not authenticated' }
 
   const updateData: Record<string, unknown> = { status }
   if (status === 'completed') {
@@ -92,7 +93,7 @@ export async function updateTaskStatus(taskId: string, status: string) {
   const { error } = await supabase.from('tasks')
     .update(updateData)
     .eq('id', taskId)
-    .eq('coach_id', user.id)
+    .eq('coach_id', coachId)
 
   if (error) return { error: error.message }
 
@@ -102,14 +103,14 @@ export async function updateTaskStatus(taskId: string, status: string) {
 
 export async function deleteTask(taskId: string) {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const coachId = await getCoachId(supabase)
 
-  if (!user) return { error: 'Not authenticated' }
+  if (!coachId) return { error: 'Not authenticated' }
 
   const { error } = await supabase.from('tasks')
     .delete()
     .eq('id', taskId)
-    .eq('coach_id', user.id)
+    .eq('coach_id', coachId)
 
   if (error) return { error: error.message }
 
@@ -119,14 +120,14 @@ export async function deleteTask(taskId: string) {
 
 export async function reorderTask(taskId: string, newSortOrder: number) {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const coachId = await getCoachId(supabase)
 
-  if (!user) return { error: 'Not authenticated' }
+  if (!coachId) return { error: 'Not authenticated' }
 
   const { error } = await supabase.from('tasks')
     .update({ sort_order: newSortOrder })
     .eq('id', taskId)
-    .eq('coach_id', user.id)
+    .eq('coach_id', coachId)
 
   if (error) return { error: error.message }
 
@@ -136,19 +137,19 @@ export async function reorderTask(taskId: string, newSortOrder: number) {
 
 export async function createSection(name: string) {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const coachId = await getCoachId(supabase)
 
-  if (!user) return { error: 'Not authenticated' }
+  if (!coachId) return { error: 'Not authenticated' }
 
   const { data: lastSection } = await supabase
     .from('task_sections')
     .select('sort_order')
-    .eq('coach_id', user.id)
+    .eq('coach_id', coachId)
     .order('sort_order', { ascending: false })
     .limit(1)
 
   const { error } = await supabase.from('task_sections').insert({
-    coach_id: user.id,
+    coach_id: coachId,
     name,
     sort_order: (lastSection?.[0]?.sort_order ?? -1) + 1,
   })
@@ -161,14 +162,14 @@ export async function createSection(name: string) {
 
 export async function updateSection(sectionId: string, name: string) {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const coachId = await getCoachId(supabase)
 
-  if (!user) return { error: 'Not authenticated' }
+  if (!coachId) return { error: 'Not authenticated' }
 
   const { error } = await supabase.from('task_sections')
     .update({ name })
     .eq('id', sectionId)
-    .eq('coach_id', user.id)
+    .eq('coach_id', coachId)
 
   if (error) return { error: error.message }
 
@@ -178,20 +179,20 @@ export async function updateSection(sectionId: string, name: string) {
 
 export async function deleteSection(sectionId: string) {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const coachId = await getCoachId(supabase)
 
-  if (!user) return { error: 'Not authenticated' }
+  if (!coachId) return { error: 'Not authenticated' }
 
   // Move tasks in this section to inbox (null section)
   await supabase.from('tasks')
     .update({ section_id: null })
     .eq('section_id', sectionId)
-    .eq('coach_id', user.id)
+    .eq('coach_id', coachId)
 
   const { error } = await supabase.from('task_sections')
     .delete()
     .eq('id', sectionId)
-    .eq('coach_id', user.id)
+    .eq('coach_id', coachId)
 
   if (error) return { error: error.message }
 
@@ -201,12 +202,12 @@ export async function deleteSection(sectionId: string) {
 
 export async function createLabel(name: string, color: string) {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const coachId = await getCoachId(supabase)
 
-  if (!user) return { error: 'Not authenticated' }
+  if (!coachId) return { error: 'Not authenticated' }
 
   const { error } = await supabase.from('task_labels').insert({
-    coach_id: user.id,
+    coach_id: coachId,
     name,
     color,
   })
@@ -219,14 +220,14 @@ export async function createLabel(name: string, color: string) {
 
 export async function deleteLabel(labelId: string) {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const coachId = await getCoachId(supabase)
 
-  if (!user) return { error: 'Not authenticated' }
+  if (!coachId) return { error: 'Not authenticated' }
 
   const { error } = await supabase.from('task_labels')
     .delete()
     .eq('id', labelId)
-    .eq('coach_id', user.id)
+    .eq('coach_id', coachId)
 
   if (error) return { error: error.message }
 
@@ -236,9 +237,9 @@ export async function deleteLabel(labelId: string) {
 
 export async function toggleLabel(taskId: string, labelId: string, add: boolean) {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const coachId = await getCoachId(supabase)
 
-  if (!user) return { error: 'Not authenticated' }
+  if (!coachId) return { error: 'Not authenticated' }
 
   if (add) {
     const { error } = await supabase.from('task_label_assignments')
@@ -258,15 +259,15 @@ export async function toggleLabel(taskId: string, labelId: string, add: boolean)
 
 export async function completeRecurringTask(taskId: string) {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const coachId = await getCoachId(supabase)
 
-  if (!user) return { error: 'Not authenticated' }
+  if (!coachId) return { error: 'Not authenticated' }
 
   // Get the task
   const { data: task } = await supabase.from('tasks')
     .select('*')
     .eq('id', taskId)
-    .eq('coach_id', user.id)
+    .eq('coach_id', coachId)
     .single()
 
   if (!task) return { error: 'Task not found' }
@@ -287,7 +288,7 @@ export async function completeRecurringTask(taskId: string) {
     }
 
     await supabase.from('tasks').insert({
-      coach_id: user.id,
+      coach_id: coachId,
       title: task.title,
       description: task.description,
       due_date: nextDate.toISOString().split('T')[0],

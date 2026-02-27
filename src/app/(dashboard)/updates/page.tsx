@@ -1,22 +1,24 @@
 import { createClient } from '@/lib/supabase/server'
+import { getCoachId } from '@/lib/supabase/get-coach-id'
 import { Radio } from 'lucide-react'
 import { UpdatesFeed } from './updates-feed'
 
 export default async function UpdatesPage() {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const coachId = await getCoachId(supabase)
+  if (!coachId) return null
 
-  const { data: updates } = user ? await supabase
+  const { data: updates } = await supabase
     .from('telegram_updates')
     .select('*')
-    .eq('coach_id', user.id)
-    .order('created_at', { ascending: false }) : { data: null }
+    .eq('coach_id', coachId)
+    .order('created_at', { ascending: false })
 
-  const { data: clients } = user ? await supabase
+  const { data: clients } = await supabase
     .from('clients')
     .select('id, company_name')
-    .eq('coach_id', user.id)
-    .order('company_name') : { data: null }
+    .eq('coach_id', coachId)
+    .order('company_name')
 
   return (
     <div className="p-8">

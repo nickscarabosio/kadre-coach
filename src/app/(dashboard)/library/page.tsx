@@ -1,24 +1,26 @@
 import { createClient } from '@/lib/supabase/server'
+import { getCoachId } from '@/lib/supabase/get-coach-id'
 import { LibraryView } from './library-view'
 
 export default async function LibraryPage() {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const coachId = await getCoachId(supabase)
+  if (!coachId) return null
 
-  const { data: documents } = user ? await supabase
+  const { data: documents } = await supabase
     .from('documents')
     .select('*')
-    .eq('coach_id', user.id)
-    .order('created_at', { ascending: false }) : { data: null }
+    .eq('coach_id', coachId)
+    .order('created_at', { ascending: false })
 
-  const { data: clients } = user ? await supabase
+  const { data: clients } = await supabase
     .from('clients')
     .select('*')
-    .eq('coach_id', user.id) : { data: null }
+    .eq('coach_id', coachId)
 
-  const { data: shares } = user ? await supabase
+  const { data: shares } = await supabase
     .from('document_shares')
-    .select('*') : { data: null }
+    .select('*')
 
   return (
     <div className="p-8">

@@ -1,13 +1,14 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { getCoachId } from '@/lib/supabase/get-coach-id'
 import { revalidatePath } from 'next/cache'
 
 export async function createDocument(formData: FormData) {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const coachId = await getCoachId(supabase)
 
-  if (!user) return { error: 'Not authenticated' }
+  if (!coachId) return { error: 'Not authenticated' }
 
   const documentType = formData.get('document_type') as string
   const title = formData.get('title') as string
@@ -30,7 +31,7 @@ export async function createDocument(formData: FormData) {
     if (!file || file.size === 0) return { error: 'Please select a file' }
 
     const ext = file.name.split('.').pop()
-    const path = `${user.id}/${Date.now()}.${ext}`
+    const path = `${coachId}/${Date.now()}.${ext}`
 
     const { error: uploadError } = await supabase.storage
       .from('documents')
@@ -56,7 +57,7 @@ export async function createDocument(formData: FormData) {
   }
 
   const { error } = await supabase.from('documents').insert({
-    coach_id: user.id,
+    coach_id: coachId,
     document_type: documentType,
     title,
     description: description || null,
@@ -78,9 +79,9 @@ export async function createDocument(formData: FormData) {
 
 export async function updateDocument(documentId: string, formData: FormData) {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const coachId = await getCoachId(supabase)
 
-  if (!user) return { error: 'Not authenticated' }
+  if (!coachId) return { error: 'Not authenticated' }
 
   const title = formData.get('title') as string | null
   const description = formData.get('description') as string | null
@@ -98,7 +99,7 @@ export async function updateDocument(documentId: string, formData: FormData) {
   const { error } = await supabase.from('documents')
     .update(updateData)
     .eq('id', documentId)
-    .eq('coach_id', user.id)
+    .eq('coach_id', coachId)
 
   if (error) return { error: error.message }
 
@@ -108,15 +109,15 @@ export async function updateDocument(documentId: string, formData: FormData) {
 
 export async function deleteDocument(documentId: string) {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const coachId = await getCoachId(supabase)
 
-  if (!user) return { error: 'Not authenticated' }
+  if (!coachId) return { error: 'Not authenticated' }
 
   // Get file path before deleting record
   const { data: document } = await supabase.from('documents')
     .select('file_path')
     .eq('id', documentId)
-    .eq('coach_id', user.id)
+    .eq('coach_id', coachId)
     .single()
 
   if (document?.file_path) {
@@ -126,7 +127,7 @@ export async function deleteDocument(documentId: string) {
   const { error } = await supabase.from('documents')
     .delete()
     .eq('id', documentId)
-    .eq('coach_id', user.id)
+    .eq('coach_id', coachId)
 
   if (error) return { error: error.message }
 
@@ -136,15 +137,15 @@ export async function deleteDocument(documentId: string) {
 
 export async function shareDocument(documentId: string, clientIds: string[]) {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const coachId = await getCoachId(supabase)
 
-  if (!user) return { error: 'Not authenticated' }
+  if (!coachId) return { error: 'Not authenticated' }
 
   // Verify the document belongs to this coach
   const { data: document } = await supabase.from('documents')
     .select('id')
     .eq('id', documentId)
-    .eq('coach_id', user.id)
+    .eq('coach_id', coachId)
     .single()
 
   if (!document) return { error: 'Document not found' }
@@ -164,9 +165,9 @@ export async function shareDocument(documentId: string, clientIds: string[]) {
 
 export async function unshareDocument(documentId: string, clientId: string) {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const coachId = await getCoachId(supabase)
 
-  if (!user) return { error: 'Not authenticated' }
+  if (!coachId) return { error: 'Not authenticated' }
 
   const { error } = await supabase.from('document_shares')
     .delete()

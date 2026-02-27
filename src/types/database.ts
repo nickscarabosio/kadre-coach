@@ -24,6 +24,7 @@ export type Database = {
           todoist_sync_enabled: boolean
           bio: string | null
           booking_link: string | null
+          parent_coach_id: string | null
           created_at: string
           updated_at: string
         }
@@ -41,6 +42,7 @@ export type Database = {
           todoist_sync_enabled?: boolean
           bio?: string | null
           booking_link?: string | null
+          parent_coach_id?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -58,6 +60,7 @@ export type Database = {
           todoist_sync_enabled?: boolean
           bio?: string | null
           booking_link?: string | null
+          parent_coach_id?: string | null
           updated_at?: string
         }
         Relationships: []

@@ -1,23 +1,25 @@
 import { createClient } from '@/lib/supabase/server'
+import { getCoachId } from '@/lib/supabase/get-coach-id'
 import Link from 'next/link'
 import { BookOpen, Clock, Users, Layers } from 'lucide-react'
 import { AddProgramButton } from './add-program-button'
 
 export default async function ProgramsPage() {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const coachId = await getCoachId(supabase)
+  if (!coachId) return null
 
-  const { data: programs } = user ? await supabase
+  const { data: programs } = await supabase
     .from('programs')
     .select('*')
-    .eq('coach_id', user.id)
-    .order('created_at', { ascending: false }) : { data: null }
+    .eq('coach_id', coachId)
+    .order('created_at', { ascending: false })
 
   // Get enrollment counts per program
-  const { data: enrollments } = user ? await supabase
+  const { data: enrollments } = await supabase
     .from('enrollments')
     .select('program_id')
-    .in('program_id', programs?.map(p => p.id) || []) : { data: null }
+    .in('program_id', programs?.map(p => p.id) || [])
 
   const enrollmentCounts = (enrollments || []).reduce((acc, e) => {
     acc[e.program_id] = (acc[e.program_id] || 0) + 1
@@ -25,10 +27,10 @@ export default async function ProgramsPage() {
   }, {} as Record<string, number>)
 
   // Get phase counts per program
-  const { data: phases } = user ? await supabase
+  const { data: phases } = await supabase
     .from('program_phases')
     .select('program_id')
-    .in('program_id', programs?.map(p => p.id) || []) : { data: null }
+    .in('program_id', programs?.map(p => p.id) || [])
 
   const phaseCounts = (phases || []).reduce((acc, p) => {
     acc[p.program_id] = (acc[p.program_id] || 0) + 1

@@ -1,6 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { getCoachId } from '@/lib/supabase/get-coach-id'
 import { revalidatePath } from 'next/cache'
 
 export async function createProject(clientId: string, data: {
@@ -9,9 +10,9 @@ export async function createProject(clientId: string, data: {
   status?: string
 }) {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const coachId = await getCoachId(supabase)
 
-  if (!user) return { error: 'Not authenticated' }
+  if (!coachId) return { error: 'Not authenticated' }
 
   const { data: lastProject } = await supabase
     .from('client_projects')
@@ -22,7 +23,7 @@ export async function createProject(clientId: string, data: {
 
   const { error } = await supabase.from('client_projects').insert({
     client_id: clientId,
-    coach_id: user.id,
+    coach_id: coachId,
     title: data.title,
     description: data.description || null,
     status: data.status || 'active',
@@ -37,14 +38,14 @@ export async function createProject(clientId: string, data: {
 
 export async function updateProject(projectId: string, clientId: string, data: Record<string, unknown>) {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const coachId = await getCoachId(supabase)
 
-  if (!user) return { error: 'Not authenticated' }
+  if (!coachId) return { error: 'Not authenticated' }
 
   const { error } = await supabase.from('client_projects')
     .update(data)
     .eq('id', projectId)
-    .eq('coach_id', user.id)
+    .eq('coach_id', coachId)
 
   if (error) return { error: error.message }
 
@@ -54,14 +55,14 @@ export async function updateProject(projectId: string, clientId: string, data: R
 
 export async function deleteProject(projectId: string, clientId: string) {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const coachId = await getCoachId(supabase)
 
-  if (!user) return { error: 'Not authenticated' }
+  if (!coachId) return { error: 'Not authenticated' }
 
   const { error } = await supabase.from('client_projects')
     .delete()
     .eq('id', projectId)
-    .eq('coach_id', user.id)
+    .eq('coach_id', coachId)
 
   if (error) return { error: error.message }
 

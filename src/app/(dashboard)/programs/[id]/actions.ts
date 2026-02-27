@@ -1,14 +1,15 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { getCoachId } from '@/lib/supabase/get-coach-id'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 
 export async function enrollCompany(programId: string, clientId: string) {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const coachId = await getCoachId(supabase)
 
-  if (!user) return { error: 'Not authenticated' }
+  if (!coachId) return { error: 'Not authenticated' }
 
   const { error } = await supabase.from('enrollments').insert({
     client_id: clientId,
@@ -23,15 +24,15 @@ export async function enrollCompany(programId: string, clientId: string) {
 
 export async function updateProgram(programId: string, formData: FormData) {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const coachId = await getCoachId(supabase)
 
-  if (!user) return { error: 'Not authenticated' }
+  if (!coachId) return { error: 'Not authenticated' }
 
   const { error } = await supabase.from('programs').update({
     name: formData.get('name') as string,
     description: formData.get('description') as string || null,
     duration_weeks: parseInt(formData.get('duration_weeks') as string) || 12,
-  }).eq('id', programId).eq('coach_id', user.id)
+  }).eq('id', programId).eq('coach_id', coachId)
 
   if (error) return { error: error.message }
 
@@ -41,14 +42,14 @@ export async function updateProgram(programId: string, formData: FormData) {
 
 export async function deleteProgram(programId: string) {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const coachId = await getCoachId(supabase)
 
-  if (!user) return { error: 'Not authenticated' }
+  if (!coachId) return { error: 'Not authenticated' }
 
   const { error } = await supabase.from('programs')
     .delete()
     .eq('id', programId)
-    .eq('coach_id', user.id)
+    .eq('coach_id', coachId)
 
   if (error) return { error: error.message }
 
@@ -59,8 +60,8 @@ export async function deleteProgram(programId: string) {
 
 export async function createPhase(programId: string, name: string) {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { error: 'Not authenticated' }
+  const coachId = await getCoachId(supabase)
+  if (!coachId) return { error: 'Not authenticated' }
 
   // Get max order_index
   const { data: existing } = await supabase
@@ -86,8 +87,8 @@ export async function createPhase(programId: string, name: string) {
 
 export async function updatePhase(phaseId: string, data: { name?: string; description?: string; duration_value?: number; duration_unit?: string }) {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { error: 'Not authenticated' }
+  const coachId = await getCoachId(supabase)
+  if (!coachId) return { error: 'Not authenticated' }
 
   const { error } = await supabase.from('program_phases').update(data).eq('id', phaseId)
   if (error) return { error: error.message }
@@ -98,8 +99,8 @@ export async function updatePhase(phaseId: string, data: { name?: string; descri
 
 export async function deletePhase(phaseId: string, programId: string) {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { error: 'Not authenticated' }
+  const coachId = await getCoachId(supabase)
+  if (!coachId) return { error: 'Not authenticated' }
 
   const { error } = await supabase.from('program_phases').delete().eq('id', phaseId)
   if (error) return { error: error.message }
@@ -110,8 +111,8 @@ export async function deletePhase(phaseId: string, programId: string) {
 
 export async function reorderPhases(programId: string, orderedIds: string[]) {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { error: 'Not authenticated' }
+  const coachId = await getCoachId(supabase)
+  if (!coachId) return { error: 'Not authenticated' }
 
   for (let i = 0; i < orderedIds.length; i++) {
     await supabase.from('program_phases').update({ order_index: i }).eq('id', orderedIds[i])
@@ -135,8 +136,8 @@ export async function createProgramAssignment(phaseId: string, data: {
   delay_days?: number
 }) {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { error: 'Not authenticated' }
+  const coachId = await getCoachId(supabase)
+  if (!coachId) return { error: 'Not authenticated' }
 
   const { data: existing } = await supabase
     .from('program_assignments')
@@ -149,7 +150,7 @@ export async function createProgramAssignment(phaseId: string, data: {
 
   const { data: assignment, error } = await supabase.from('program_assignments').insert({
     phase_id: phaseId,
-    coach_id: user.id,
+    coach_id: coachId,
     title: data.title,
     description: data.description || null,
     assignment_type: data.assignment_type || 'task',
@@ -180,10 +181,10 @@ export async function updateProgramAssignment(assignmentId: string, data: {
   delay_days?: number
 }) {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { error: 'Not authenticated' }
+  const coachId = await getCoachId(supabase)
+  if (!coachId) return { error: 'Not authenticated' }
 
-  const { error } = await supabase.from('program_assignments').update(data).eq('id', assignmentId).eq('coach_id', user.id)
+  const { error } = await supabase.from('program_assignments').update(data).eq('id', assignmentId).eq('coach_id', coachId)
   if (error) return { error: error.message }
 
   revalidatePath('/programs')
@@ -192,10 +193,10 @@ export async function updateProgramAssignment(assignmentId: string, data: {
 
 export async function deleteProgramAssignment(assignmentId: string) {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { error: 'Not authenticated' }
+  const coachId = await getCoachId(supabase)
+  if (!coachId) return { error: 'Not authenticated' }
 
-  const { error } = await supabase.from('program_assignments').delete().eq('id', assignmentId).eq('coach_id', user.id)
+  const { error } = await supabase.from('program_assignments').delete().eq('id', assignmentId).eq('coach_id', coachId)
   if (error) return { error: error.message }
 
   revalidatePath('/programs')
@@ -204,8 +205,8 @@ export async function deleteProgramAssignment(assignmentId: string) {
 
 export async function reorderAssignments(phaseId: string, orderedIds: string[]) {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { error: 'Not authenticated' }
+  const coachId = await getCoachId(supabase)
+  if (!coachId) return { error: 'Not authenticated' }
 
   for (let i = 0; i < orderedIds.length; i++) {
     await supabase.from('program_assignments').update({ order_index: i }).eq('id', orderedIds[i])
@@ -219,8 +220,8 @@ export async function reorderAssignments(phaseId: string, orderedIds: string[]) 
 
 export async function assignProgram(programId: string, enrollmentId: string, clientId: string, assigneeName: string, assigneeEmail: string) {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { error: 'Not authenticated' }
+  const coachId = await getCoachId(supabase)
+  if (!coachId) return { error: 'Not authenticated' }
 
   // Get all phases + assignments for this program
   const { data: phases } = await supabase
@@ -243,7 +244,7 @@ export async function assignProgram(programId: string, enrollmentId: string, cli
 
   // Bulk create assigned_assignments
   const inserts = assignments.map(a => ({
-    coach_id: user.id,
+    coach_id: coachId,
     assignment_id: a.id,
     enrollment_id: enrollmentId,
     client_id: clientId,
@@ -266,15 +267,15 @@ export async function assignProgram(programId: string, enrollmentId: string, cli
 
 export async function updateAssignedStatus(assignedId: string, status: string) {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { error: 'Not authenticated' }
+  const coachId = await getCoachId(supabase)
+  if (!coachId) return { error: 'Not authenticated' }
 
   const updates: Record<string, unknown> = { status }
   if (status === 'completed') {
     updates.completed_at = new Date().toISOString()
   }
 
-  const { error } = await supabase.from('assigned_assignments').update(updates).eq('id', assignedId).eq('coach_id', user.id)
+  const { error } = await supabase.from('assigned_assignments').update(updates).eq('id', assignedId).eq('coach_id', coachId)
   if (error) return { error: error.message }
 
   revalidatePath('/programs')
@@ -287,20 +288,20 @@ export async function markAssignmentComplete(assignedId: string) {
 
 export async function sendAssignmentEmail(assignedId: string) {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { error: 'Not authenticated' }
+  const coachId = await getCoachId(supabase)
+  if (!coachId) return { error: 'Not authenticated' }
 
   const { data: assigned } = await supabase
     .from('assigned_assignments')
     .select('*')
     .eq('id', assignedId)
-    .eq('coach_id', user.id)
+    .eq('coach_id', coachId)
     .single()
 
   if (!assigned) return { error: 'Assignment not found' }
   if (!assigned.assignee_email) return { error: 'No email address' }
 
-  const { data: coach } = await supabase.from('coaches').select('full_name').eq('id', user.id).single()
+  const { data: coach } = await supabase.from('coaches').select('full_name').eq('id', coachId).single()
 
   try {
     const { sendAssignmentNotification } = await import('@/lib/email/send')

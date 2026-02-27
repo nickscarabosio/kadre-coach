@@ -1,11 +1,12 @@
 'use client'
 
 import { useState } from 'react'
-import { User, Bell, MessageSquare, FileText } from 'lucide-react'
+import { User, Bell, MessageSquare, FileText, Users } from 'lucide-react'
 import { ProfileForm } from './profile-form'
 import { NotificationSettings } from './notification-settings'
 import { TelegramConnect } from './telegram-connect'
 import { MessageSnippets } from './message-snippets'
+import { TeamManagement } from './team-management'
 import type { Coach, CoachMessageSnippet, NotificationPreferences } from '@/types/database'
 
 interface SettingsClientProps {
@@ -19,10 +20,11 @@ const tabs = [
   { id: 'notifications' as const, label: 'Notifications', icon: Bell },
   { id: 'snippets' as const, label: 'Message snippets', icon: FileText },
   { id: 'integrations' as const, label: 'Integrations', icon: MessageSquare },
+  { id: 'team' as const, label: 'Team', icon: Users },
 ]
 
 export function SettingsClient({ coach, prefs, snippets }: SettingsClientProps) {
-  const [activeTab, setActiveTab] = useState<'profile' | 'notifications' | 'snippets' | 'integrations'>('profile')
+  const [activeTab, setActiveTab] = useState<'profile' | 'notifications' | 'snippets' | 'integrations' | 'team'>('profile')
 
   return (
     <div className="p-8 max-w-3xl">
@@ -87,6 +89,13 @@ export function SettingsClient({ coach, prefs, snippets }: SettingsClientProps) 
                   username={coach.telegram_username}
                 />
               </div>
+            </div>
+          )}
+
+          {activeTab === 'team' && (
+            <div className="bg-surface border border-border rounded-xl p-6 shadow-card">
+              <h2 className="text-lg font-semibold text-primary mb-4">Team</h2>
+              <TeamManagement isOwner={!coach.parent_coach_id} />
             </div>
           )}
         </div>

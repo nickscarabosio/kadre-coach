@@ -1,18 +1,19 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { getCoachId } from '@/lib/supabase/get-coach-id'
 import { revalidatePath } from 'next/cache'
 
 export async function sendMessage(clientId: string, content: string) {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const coachId = await getCoachId(supabase)
 
-  if (!user) {
+  if (!coachId) {
     return { error: 'Not authenticated' }
   }
 
   const { error } = await supabase.from('messages').insert({
-    coach_id: user.id,
+    coach_id: coachId,
     client_id: clientId,
     content,
   })
@@ -37,12 +38,12 @@ export async function createCoachCheckIn(
   }
 ) {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const coachId = await getCoachId(supabase)
 
-  if (!user) return { error: 'Not authenticated' }
+  if (!coachId) return { error: 'Not authenticated' }
 
   const { error } = await supabase.from('coach_check_ins').insert({
-    coach_id: user.id,
+    coach_id: coachId,
     client_id: clientId,
     check_in_type: data.check_in_type,
     title: data.title,
@@ -69,14 +70,14 @@ export async function updateClient(
   }
 ) {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const coachId = await getCoachId(supabase)
 
-  if (!user) return { error: 'Not authenticated' }
+  if (!coachId) return { error: 'Not authenticated' }
 
   const { error } = await supabase.from('clients')
     .update(data)
     .eq('id', clientId)
-    .eq('coach_id', user.id)
+    .eq('coach_id', coachId)
 
   if (error) return { error: error.message }
 
@@ -95,12 +96,12 @@ export async function createSessionNote(
   }
 ) {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const coachId = await getCoachId(supabase)
 
-  if (!user) return { error: 'Not authenticated' }
+  if (!coachId) return { error: 'Not authenticated' }
 
   const { error } = await supabase.from('session_notes').insert({
-    coach_id: user.id,
+    coach_id: coachId,
     client_id: clientId,
     title: data.title,
     content: data.content,

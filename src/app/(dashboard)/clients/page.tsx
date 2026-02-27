@@ -1,24 +1,26 @@
 import { createClient } from '@/lib/supabase/server'
+import { getCoachId } from '@/lib/supabase/get-coach-id'
 import { Building } from 'lucide-react'
 import { AddClientButton } from './add-client-button'
 import { ClientList } from './client-list'
 
 export default async function ClientsPage() {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const coachId = await getCoachId(supabase)
+  if (!coachId) return null
 
-  const { data: clients } = user ? await supabase
+  const { data: clients } = await supabase
     .from('clients')
     .select('*')
-    .eq('coach_id', user.id)
-    .order('created_at', { ascending: false }) : { data: null }
+    .eq('coach_id', coachId)
+    .order('created_at', { ascending: false })
 
   // Get latest telegram update per client
-  const { data: allUpdates } = user ? await supabase
+  const { data: allUpdates } = await supabase
     .from('telegram_updates')
     .select('client_id, content, created_at')
-    .eq('coach_id', user.id)
-    .order('created_at', { ascending: false }) : { data: null }
+    .eq('coach_id', coachId)
+    .order('created_at', { ascending: false })
 
   const latestUpdateByClient: Record<string, { content: string; created_at: string }> = {}
   for (const u of allUpdates || []) {
@@ -29,13 +31,13 @@ export default async function ClientsPage() {
 
   // Get upcoming task counts per client (next 7 days)
   const sevenDaysFromNow = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
-  const { data: upcomingTasks } = user ? await supabase
+  const { data: upcomingTasks } = await supabase
     .from('tasks')
     .select('client_id')
-    .eq('coach_id', user.id)
+    .eq('coach_id', coachId)
     .neq('status', 'completed')
     .lte('due_date', sevenDaysFromNow)
-    .not('client_id', 'is', null) : { data: null }
+    .not('client_id', 'is', null)
 
   const upcomingCountByClient: Record<string, number> = {}
   for (const t of upcomingTasks || []) {
@@ -46,13 +48,13 @@ export default async function ClientsPage() {
 
   // Get overdue task counts per client
   const today = new Date().toISOString().split('T')[0]
-  const { data: overdueTasks } = user ? await supabase
+  const { data: overdueTasks } = await supabase
     .from('tasks')
     .select('client_id')
-    .eq('coach_id', user.id)
+    .eq('coach_id', coachId)
     .neq('status', 'completed')
     .lt('due_date', today)
-    .not('client_id', 'is', null) : { data: null }
+    .not('client_id', 'is', null)
 
   const overdueCountByClient: Record<string, number> = {}
   for (const t of overdueTasks || []) {

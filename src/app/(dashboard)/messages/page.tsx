@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { getCoachId } from '@/lib/supabase/get-coach-id'
 import { MessageList } from './message-list'
 import { MessageSquare } from 'lucide-react'
 import { NewMessageModal } from './new-message-modal'
@@ -6,13 +7,14 @@ import type { Message } from '@/types/database'
 
 export default async function MessagesPage() {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const coachId = await getCoachId(supabase)
+  if (!coachId) return null
 
-  const { data: clients } = user ? await supabase
+  const { data: clients } = await supabase
     .from('clients')
     .select('id, company_name')
-    .eq('coach_id', user.id)
-    .order('company_name', { ascending: true }) : { data: null }
+    .eq('coach_id', coachId)
+    .order('company_name', { ascending: true })
 
   // Get contacts with company names
   const clientIds = (clients || []).map(c => c.id)
@@ -28,25 +30,25 @@ export default async function MessagesPage() {
     company_name: clientMap[c.client_id] || '',
   }))
 
-  const { data: snippets } = user ? await supabase
+  const { data: snippets } = await supabase
     .from('coach_message_snippets')
     .select('id, title, body')
-    .eq('coach_id', user.id)
-    .order('sort_order', { ascending: true }) : { data: null }
+    .eq('coach_id', coachId)
+    .order('sort_order', { ascending: true })
 
   // Fetch conversations
-  const { data: conversations } = user ? await supabase
+  const { data: conversations } = await supabase
     .from('conversations')
     .select('*')
-    .eq('coach_id', user.id)
-    .order('updated_at', { ascending: false }) : { data: null }
+    .eq('coach_id', coachId)
+    .order('updated_at', { ascending: false })
 
   // Fetch all messages with conversation_id
-  const { data: messages } = user ? await supabase
+  const { data: messages } = await supabase
     .from('messages')
     .select('*')
-    .eq('coach_id', user.id)
-    .order('created_at', { ascending: false }) : { data: null }
+    .eq('coach_id', coachId)
+    .order('created_at', { ascending: false })
 
   // Fetch conversation participants
   const conversationIds = (conversations || []).map(c => c.id)
