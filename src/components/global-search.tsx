@@ -150,7 +150,7 @@ export function GlobalSearch() {
                         </button>
                       ))}
                     </section>
-                  }
+                  )}
                   {results!.people.length > 0 && (
                     <section>
                       <h3 className="text-xs font-semibold text-muted uppercase tracking-wider px-2 mb-1 flex items-center gap-2">
