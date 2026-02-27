@@ -20,10 +20,27 @@ export default async function ClientsPage() {
     .eq('coach_id', user.id)
     .order('created_at', { ascending: false }) : { data: null }
 
-  const latestUpdateByClient: Record<string, string> = {}
+  const latestUpdateByClient: Record<string, { content: string; created_at: string }> = {}
   for (const u of allUpdates || []) {
     if (u.client_id && !latestUpdateByClient[u.client_id]) {
-      latestUpdateByClient[u.client_id] = u.content
+      latestUpdateByClient[u.client_id] = { content: u.content, created_at: u.created_at }
+    }
+  }
+
+  // Get upcoming task counts per client (next 7 days)
+  const sevenDaysFromNow = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+  const { data: upcomingTasks } = user ? await supabase
+    .from('tasks')
+    .select('client_id')
+    .eq('coach_id', user.id)
+    .neq('status', 'completed')
+    .lte('due_date', sevenDaysFromNow)
+    .not('client_id', 'is', null) : { data: null }
+
+  const upcomingCountByClient: Record<string, number> = {}
+  for (const t of upcomingTasks || []) {
+    if (t.client_id) {
+      upcomingCountByClient[t.client_id] = (upcomingCountByClient[t.client_id] || 0) + 1
     }
   }
 
@@ -46,8 +63,10 @@ export default async function ClientsPage() {
 
   const enrichedClients = (clients || []).map(client => ({
     ...client,
-    latest_update: latestUpdateByClient[client.id] || null,
+    latest_update: latestUpdateByClient[client.id]?.content || null,
+    latest_update_at: latestUpdateByClient[client.id]?.created_at || null,
     overdue_task_count: overdueCountByClient[client.id] || 0,
+    upcoming_task_count: upcomingCountByClient[client.id] || 0,
   }))
 
   return (

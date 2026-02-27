@@ -2,9 +2,10 @@
 
 import { useState } from 'react'
 import { format } from 'date-fns'
-import { Mic, FileText, MessageSquare, Tag } from 'lucide-react'
+import { Mic, FileText, MessageSquare, Tag, Trash2, Pencil, X, Check } from 'lucide-react'
 import type { TelegramUpdate } from '@/types/database'
 import { ExpandableText } from '@/components/ui/expandable-text'
+import { deleteUpdate, updateUpdateContent } from './actions'
 
 interface UpdatesFeedProps {
   updates: TelegramUpdate[]
@@ -25,9 +26,12 @@ const typeIcons: Record<string, typeof MessageSquare> = {
   document: FileText,
 }
 
-export function UpdatesFeed({ updates, clients }: UpdatesFeedProps) {
+export function UpdatesFeed({ updates: initialUpdates, clients }: UpdatesFeedProps) {
+  const [updates, setUpdates] = useState(initialUpdates)
   const [filterClient, setFilterClient] = useState<string>('all')
   const [filterType, setFilterType] = useState<string>('all')
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editContent, setEditContent] = useState('')
 
   const clientMap = Object.fromEntries(clients.map(c => [c.id, c.company_name]))
 
@@ -43,6 +47,36 @@ export function UpdatesFeed({ updates, clients }: UpdatesFeedProps) {
     const date = format(new Date(u.created_at), 'yyyy-MM-dd')
     if (!grouped[date]) grouped[date] = []
     grouped[date].push(u)
+  }
+
+  const handleDelete = async (updateId: string) => {
+    setUpdates(prev => prev.filter(u => u.id !== updateId))
+    await deleteUpdate(updateId)
+  }
+
+  const handleEditStart = (update: TelegramUpdate) => {
+    setEditingId(update.id)
+    setEditContent(update.content)
+  }
+
+  const handleEditSave = async (updateId: string) => {
+    if (!editContent.trim()) return
+    setUpdates(prev => prev.map(u => u.id === updateId ? { ...u, content: editContent } : u))
+    setEditingId(null)
+    await updateUpdateContent(updateId, editContent)
+  }
+
+  const handleEditCancel = () => {
+    setEditingId(null)
+    setEditContent('')
+  }
+
+  // For voice messages, prefer voice_transcript over content
+  const displayContent = (update: TelegramUpdate) => {
+    if (update.message_type === 'voice' && update.voice_transcript) {
+      return update.voice_transcript
+    }
+    return update.content
   }
 
   return (
@@ -82,9 +116,10 @@ export function UpdatesFeed({ updates, clients }: UpdatesFeedProps) {
               {dayUpdates.map((update) => {
                 const Icon = typeIcons[update.message_type] || MessageSquare
                 const company = update.client_id ? clientMap[update.client_id] : null
+                const isEditing = editingId === update.id
 
                 return (
-                  <div key={update.id} className="bg-surface border border-border rounded-xl p-4 shadow-subtle">
+                  <div key={update.id} className="bg-surface border border-border rounded-xl p-4 shadow-subtle group">
                     <div className="flex items-start gap-3">
                       <div className="mt-0.5 p-2 rounded-lg bg-primary-5">
                         <Icon className="w-4 h-4 text-muted" />
@@ -105,10 +140,56 @@ export function UpdatesFeed({ updates, clients }: UpdatesFeedProps) {
                           <span className="text-xs text-muted ml-auto">
                             {format(new Date(update.created_at), 'h:mm a')}
                           </span>
+                          {/* Edit/Delete buttons */}
+                          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            {!isEditing && (
+                              <>
+                                <button
+                                  onClick={() => handleEditStart(update)}
+                                  className="p-1 text-muted hover:text-primary rounded transition-colors"
+                                  title="Edit"
+                                >
+                                  <Pencil className="w-3.5 h-3.5" />
+                                </button>
+                                <button
+                                  onClick={() => handleDelete(update.id)}
+                                  className="p-1 text-muted hover:text-red-500 rounded transition-colors"
+                                  title="Delete"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </>
+                            )}
+                          </div>
                         </div>
-                        <ExpandableText text={update.content} lines={2} />
-                        {update.voice_transcript && update.voice_transcript !== update.content && (
-                          <p className="text-xs text-muted mt-2 italic">Transcript: {update.voice_transcript}</p>
+                        {isEditing ? (
+                          <div className="mt-1">
+                            <textarea
+                              value={editContent}
+                              onChange={(e) => setEditContent(e.target.value)}
+                              rows={3}
+                              className="w-full px-3 py-2 bg-surface border border-border-strong rounded-lg text-sm text-primary focus:outline-none focus:ring-2 focus:ring-secondary/40 resize-none"
+                              autoFocus
+                            />
+                            <div className="flex items-center gap-2 mt-2">
+                              <button
+                                onClick={() => handleEditSave(update.id)}
+                                className="flex items-center gap-1 px-3 py-1 bg-secondary text-white text-xs font-medium rounded-lg hover:bg-secondary/90 transition-colors"
+                              >
+                                <Check className="w-3 h-3" />
+                                Save
+                              </button>
+                              <button
+                                onClick={handleEditCancel}
+                                className="flex items-center gap-1 px-3 py-1 bg-primary-5 text-primary text-xs font-medium rounded-lg hover:bg-primary-10 transition-colors"
+                              >
+                                <X className="w-3 h-3" />
+                                Cancel
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <ExpandableText text={displayContent(update)} lines={2} />
                         )}
                       </div>
                     </div>

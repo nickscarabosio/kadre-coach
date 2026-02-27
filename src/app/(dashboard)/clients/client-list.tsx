@@ -2,12 +2,15 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { LayoutGrid, List, Building, Search, AlertCircle } from 'lucide-react'
+import { LayoutGrid, List, Building, Search, AlertCircle, Clock, CalendarCheck } from 'lucide-react'
+import { formatDistanceToNow } from 'date-fns'
 import type { Client } from '@/types/database'
 
 interface EnrichedClient extends Client {
   latest_update?: string | null
+  latest_update_at?: string | null
   overdue_task_count: number
+  upcoming_task_count: number
 }
 
 interface ClientListProps {
@@ -92,6 +95,12 @@ export function ClientList({ clients }: ClientListProps) {
                         {client.overdue_task_count}
                       </span>
                     )}
+                    {client.upcoming_task_count > 0 && (
+                      <span className="shrink-0 flex items-center gap-1 text-xs font-medium text-secondary bg-secondary-10 px-1.5 py-0.5 rounded-full">
+                        <CalendarCheck className="w-3 h-3" />
+                        {client.upcoming_task_count}
+                      </span>
+                    )}
                   </div>
                   <p className="text-sm text-muted truncate">{client.email}</p>
                   {client.industry && (
@@ -101,7 +110,15 @@ export function ClientList({ clients }: ClientListProps) {
               </div>
 
               {client.latest_update && (
-                <p className="text-xs text-primary/60 mt-3 line-clamp-2">{client.latest_update}</p>
+                <div className="mt-3">
+                  <p className="text-xs text-primary/60 line-clamp-2">{client.latest_update}</p>
+                  {client.latest_update_at && (
+                    <p className="text-[10px] text-muted mt-0.5 flex items-center gap-1">
+                      <Clock className="w-2.5 h-2.5" />
+                      {formatDistanceToNow(new Date(client.latest_update_at), { addSuffix: true })}
+                    </p>
+                  )}
+                </div>
               )}
 
               <div className="mt-4 flex items-center justify-between">
@@ -131,6 +148,7 @@ export function ClientList({ clients }: ClientListProps) {
                 <th className="text-left px-6 py-3 text-xs font-semibold text-muted uppercase tracking-wide">Status</th>
                 <th className="text-left px-6 py-3 text-xs font-semibold text-muted uppercase tracking-wide">Latest Update</th>
                 <th className="text-left px-6 py-3 text-xs font-semibold text-muted uppercase tracking-wide">Engagement</th>
+                <th className="text-left px-6 py-3 text-xs font-semibold text-muted uppercase tracking-wide">Upcoming</th>
                 <th className="text-left px-6 py-3 text-xs font-semibold text-muted uppercase tracking-wide">Overdue</th>
               </tr>
             </thead>
@@ -164,6 +182,16 @@ export function ClientList({ clients }: ClientListProps) {
                       </div>
                       <span className="text-xs text-muted">{client.engagement_score}%</span>
                     </div>
+                  </td>
+                  <td className="px-6 py-3">
+                    {client.upcoming_task_count > 0 ? (
+                      <span className="flex items-center gap-1 text-xs font-medium text-secondary">
+                        <CalendarCheck className="w-3 h-3" />
+                        {client.upcoming_task_count}
+                      </span>
+                    ) : (
+                      <span className="text-xs text-muted">—</span>
+                    )}
                   </td>
                   <td className="px-6 py-3">
                     {client.overdue_task_count > 0 ? (

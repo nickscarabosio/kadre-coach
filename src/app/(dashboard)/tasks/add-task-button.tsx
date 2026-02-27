@@ -4,12 +4,13 @@ import { useState } from 'react'
 import { Plus, X, Flag } from 'lucide-react'
 import { Client, TaskSection, TaskLabel } from '@/types/database'
 import { createTask } from './actions'
-import { useRouter } from 'next/navigation'
+
 
 interface AddTaskButtonProps {
   clients: Client[]
   sections: TaskSection[]
   labels: TaskLabel[]
+  onTaskCreated?: () => void
 }
 
 const priorities = [
@@ -19,13 +20,12 @@ const priorities = [
   { level: 4, label: 'P4', color: 'text-gray-400' },
 ]
 
-export function AddTaskButton({ clients, sections }: AddTaskButtonProps) {
+export function AddTaskButton({ clients, sections, onTaskCreated }: AddTaskButtonProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [priorityLevel, setPriorityLevel] = useState(4)
   const [isRecurring, setIsRecurring] = useState(false)
-  const router = useRouter()
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -58,7 +58,7 @@ export function AddTaskButton({ clients, sections }: AddTaskButtonProps) {
     setLoading(false)
     setPriorityLevel(4)
     setIsRecurring(false)
-    router.refresh()
+    onTaskCreated?.()
   }
 
   return (

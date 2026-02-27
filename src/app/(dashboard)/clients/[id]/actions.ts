@@ -33,6 +33,7 @@ export async function createCoachCheckIn(
     notes: string | null
     duration_minutes: number | null
     check_in_date: string
+    recording_url?: string | null
   }
 ) {
   const supabase = await createClient()
@@ -48,11 +49,39 @@ export async function createCoachCheckIn(
     notes: data.notes,
     duration_minutes: data.duration_minutes,
     check_in_date: data.check_in_date,
+    recording_url: data.recording_url || null,
   })
 
   if (error) return { error: error.message }
 
   revalidatePath(`/clients/${clientId}`)
+  return { success: true }
+}
+
+export async function updateClient(
+  clientId: string,
+  data: {
+    company_name?: string
+    email?: string
+    industry?: string | null
+    website?: string | null
+    status?: string
+  }
+) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  if (!user) return { error: 'Not authenticated' }
+
+  const { error } = await supabase.from('clients')
+    .update(data)
+    .eq('id', clientId)
+    .eq('coach_id', user.id)
+
+  if (error) return { error: error.message }
+
+  revalidatePath(`/clients/${clientId}`)
+  revalidatePath('/clients')
   return { success: true }
 }
 
@@ -62,6 +91,7 @@ export async function createSessionNote(
     title: string
     content: string
     session_date: string
+    recording_url?: string | null
   }
 ) {
   const supabase = await createClient()
@@ -75,6 +105,7 @@ export async function createSessionNote(
     title: data.title,
     content: data.content,
     session_date: data.session_date,
+    recording_url: data.recording_url || null,
   })
 
   if (error) return { error: error.message }

@@ -1,16 +1,18 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
+import ReactMarkdown from 'react-markdown'
 
 interface ExpandableTextProps {
   text: string
   lines?: number
+  markdown?: boolean
 }
 
-export function ExpandableText({ text, lines = 2 }: ExpandableTextProps) {
+export function ExpandableText({ text, lines = 2, markdown = false }: ExpandableTextProps) {
   const [expanded, setExpanded] = useState(false)
   const [clamped, setClamped] = useState(false)
-  const ref = useRef<HTMLParagraphElement>(null)
+  const ref = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     const el = ref.current
@@ -23,12 +25,18 @@ export function ExpandableText({ text, lines = 2 }: ExpandableTextProps) {
 
   return (
     <div>
-      <p
+      <div
         ref={ref}
-        className={`text-primary/80 whitespace-pre-wrap text-sm ${expanded ? '' : clampClass}`}
+        className={`text-primary/80 text-sm ${expanded ? '' : clampClass}`}
       >
-        {text}
-      </p>
+        {markdown ? (
+          <div className="prose prose-sm max-w-none prose-p:my-1 prose-li:my-0 prose-ul:my-1 prose-ol:my-1 prose-headings:my-2 prose-headings:text-primary prose-p:text-primary/80 prose-li:text-primary/80">
+            <ReactMarkdown>{text}</ReactMarkdown>
+          </div>
+        ) : (
+          <p className="whitespace-pre-wrap">{text}</p>
+        )}
+      </div>
       {clamped && (
         <button
           onClick={() => setExpanded(!expanded)}

@@ -62,6 +62,7 @@ export function ClientTabs({ clientId, reflections, sessionNotes, messages, upda
       notes: formData.get('notes') as string || null,
       duration_minutes: formData.get('duration_minutes') ? parseInt(formData.get('duration_minutes') as string) : null,
       check_in_date: formData.get('check_in_date') as string,
+      recording_url: formData.get('recording_url') as string || null,
     })
     setShowCheckInModal(false)
     setModalLoading(false)
@@ -76,6 +77,7 @@ export function ClientTabs({ clientId, reflections, sessionNotes, messages, upda
       title: formData.get('title') as string,
       content: formData.get('content') as string,
       session_date: formData.get('session_date') as string,
+      recording_url: formData.get('recording_url') as string || null,
     })
     setShowNoteModal(false)
     setModalLoading(false)
@@ -383,6 +385,15 @@ export function ClientTabs({ clientId, reflections, sessionNotes, messages, upda
                   />
                 </div>
               </div>
+              <div>
+                <label className="block text-sm font-medium text-primary mb-1.5">Recording URL</label>
+                <input
+                  name="recording_url"
+                  type="url"
+                  className="w-full px-4 py-2.5 bg-surface border border-border-strong rounded-lg text-primary placeholder-muted focus:outline-none focus:ring-2 focus:ring-secondary/40 focus:border-secondary"
+                  placeholder="https://zoom.us/rec/..."
+                />
+              </div>
               <div className="flex gap-3 pt-4">
                 <button
                   type="button"
@@ -443,6 +454,15 @@ export function ClientTabs({ clientId, reflections, sessionNotes, messages, upda
                   required
                   className="w-full px-4 py-2.5 bg-surface border border-border-strong rounded-lg text-primary placeholder-muted focus:outline-none focus:ring-2 focus:ring-secondary/40 focus:border-secondary resize-none"
                   placeholder="Session notes..."
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-primary mb-1.5">Recording URL</label>
+                <input
+                  name="recording_url"
+                  type="url"
+                  className="w-full px-4 py-2.5 bg-surface border border-border-strong rounded-lg text-primary placeholder-muted focus:outline-none focus:ring-2 focus:ring-secondary/40 focus:border-secondary"
+                  placeholder="https://zoom.us/rec/..."
                 />
               </div>
               <div className="flex gap-3 pt-4">

@@ -55,7 +55,7 @@ export async function createTask(data: {
 
   if (error) return { error: error.message }
 
-  revalidatePath('/tasks')
+  revalidatePath('/dashboard')
   return { success: true }
 }
 
@@ -72,7 +72,7 @@ export async function updateTask(taskId: string, data: Record<string, unknown>) 
 
   if (error) return { error: error.message }
 
-  revalidatePath('/tasks')
+  revalidatePath('/dashboard')
   return { success: true }
 }
 
@@ -96,7 +96,7 @@ export async function updateTaskStatus(taskId: string, status: string) {
 
   if (error) return { error: error.message }
 
-  revalidatePath('/tasks')
+  revalidatePath('/dashboard')
   return { success: true }
 }
 
@@ -113,7 +113,7 @@ export async function deleteTask(taskId: string) {
 
   if (error) return { error: error.message }
 
-  revalidatePath('/tasks')
+  revalidatePath('/dashboard')
   return { success: true }
 }
 
@@ -130,7 +130,7 @@ export async function reorderTask(taskId: string, newSortOrder: number) {
 
   if (error) return { error: error.message }
 
-  revalidatePath('/tasks')
+  revalidatePath('/dashboard')
   return { success: true }
 }
 
@@ -155,7 +155,7 @@ export async function createSection(name: string) {
 
   if (error) return { error: error.message }
 
-  revalidatePath('/tasks')
+  revalidatePath('/dashboard')
   return { success: true }
 }
 
@@ -172,7 +172,7 @@ export async function updateSection(sectionId: string, name: string) {
 
   if (error) return { error: error.message }
 
-  revalidatePath('/tasks')
+  revalidatePath('/dashboard')
   return { success: true }
 }
 
@@ -195,7 +195,7 @@ export async function deleteSection(sectionId: string) {
 
   if (error) return { error: error.message }
 
-  revalidatePath('/tasks')
+  revalidatePath('/dashboard')
   return { success: true }
 }
 
@@ -213,7 +213,7 @@ export async function createLabel(name: string, color: string) {
 
   if (error) return { error: error.message }
 
-  revalidatePath('/tasks')
+  revalidatePath('/dashboard')
   return { success: true }
 }
 
@@ -230,7 +230,7 @@ export async function deleteLabel(labelId: string) {
 
   if (error) return { error: error.message }
 
-  revalidatePath('/tasks')
+  revalidatePath('/dashboard')
   return { success: true }
 }
 
@@ -252,7 +252,7 @@ export async function toggleLabel(taskId: string, labelId: string, add: boolean)
     if (error) return { error: error.message }
   }
 
-  revalidatePath('/tasks')
+  revalidatePath('/dashboard')
   return { success: true }
 }
 
@@ -302,6 +302,6 @@ export async function completeRecurringTask(taskId: string) {
     })
   }
 
-  revalidatePath('/tasks')
+  revalidatePath('/dashboard')
   return { success: true }
 }

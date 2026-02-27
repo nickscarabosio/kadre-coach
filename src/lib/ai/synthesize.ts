@@ -9,7 +9,7 @@ export async function generateDailySynthesis(coachId: string): Promise<string> {
   // Get today's updates
   const { data: updates } = await supabase
     .from('telegram_updates')
-    .select('content, classification, client_id, created_at')
+    .select('content, voice_transcript, classification, client_id, created_at')
     .eq('coach_id', coachId)
     .gte('created_at', `${today}T00:00:00`)
     .order('created_at')
@@ -37,7 +37,8 @@ export async function generateDailySynthesis(coachId: string): Promise<string> {
 
   const updatesText = (updates || []).map(u => {
     const company = u.client_id ? clientMap[u.client_id] || 'Unknown' : 'Untagged'
-    return `[${company}] (${u.classification || 'unclassified'}) ${u.content}`
+    const text = u.voice_transcript || u.content
+    return `[${company}] (${u.classification || 'unclassified'}) ${text}`
   }).join('\n\n') || 'No updates today.'
 
   const checkInsText = (reflections || []).map(r => {

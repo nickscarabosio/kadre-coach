@@ -3,13 +3,15 @@
 import { useState } from 'react'
 import { FolderPlus, X } from 'lucide-react'
 import { createSection } from './actions'
-import { useRouter } from 'next/navigation'
 
-export function SectionManager() {
+interface SectionManagerProps {
+  onCreated?: () => void
+}
+
+export function SectionManager({ onCreated }: SectionManagerProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [name, setName] = useState('')
   const [loading, setLoading] = useState(false)
-  const router = useRouter()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -19,7 +21,7 @@ export function SectionManager() {
     setName('')
     setIsOpen(false)
     setLoading(false)
-    router.refresh()
+    onCreated?.()
   }
 
   return (
