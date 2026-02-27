@@ -1,6 +1,7 @@
 import { createAdminClient } from '@/lib/supabase/server'
 import { notFound } from 'next/navigation'
 import { CheckInForm } from './check-in-form'
+import { PortalTabs } from './portal-tabs'
 
 export default async function ClientPortalPage({
   params,
@@ -20,17 +21,41 @@ export default async function ClientPortalPage({
     notFound()
   }
 
+  const { data: messages } = await supabase
+    .from('messages')
+    .select('*')
+    .eq('client_id', client.id)
+    .order('created_at', { ascending: false })
+    .limit(20)
+
+  const { data: resources } = await supabase
+    .from('resources')
+    .select('*')
+    .or(`client_id.eq.${client.id},client_id.is.null`)
+    .eq('coach_id', client.coach_id)
+    .order('created_at', { ascending: false })
+
+  const { data: reflections } = await supabase
+    .from('reflections')
+    .select('*')
+    .eq('client_id', client.id)
+    .order('created_at', { ascending: false })
+    .limit(20)
+
   return (
-    <div className="min-h-screen bg-zinc-950 py-12 px-4">
+    <div className="min-h-screen bg-background py-12 px-4">
       <div className="max-w-2xl mx-auto">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-white mb-2">Weekly Check-in</h1>
-          <p className="text-zinc-400">
-            Hi {client.name.split(' ')[0]}, your coach would love to hear how you&apos;re doing.
-          </p>
+          <h1 className="text-3xl font-bold text-primary mb-2">Welcome, {client.name.split(' ')[0]}</h1>
+          <p className="text-muted">Your coaching portal</p>
         </div>
 
-        <CheckInForm clientId={client.id} />
+        <PortalTabs
+          clientId={client.id}
+          messages={messages || []}
+          resources={resources || []}
+          reflections={reflections || []}
+        />
       </div>
     </div>
   )
