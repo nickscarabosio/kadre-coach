@@ -1,14 +1,16 @@
 import { getAIClient, MODELS } from './client'
 import { INFER_CLIENT_PROMPT } from './prompts'
 import { createAdminClient } from '@/lib/supabase/server'
+import { resolveCoachId } from '@/lib/supabase/get-coach-id'
 
 export async function inferClient(coachId: string, content: string): Promise<string | null> {
   const supabase = createAdminClient()
+  const effectiveCoachId = await resolveCoachId(supabase, coachId)
 
   const { data: clients } = await supabase
     .from('clients')
     .select('id, company_name')
-    .eq('coach_id', coachId)
+    .eq('coach_id', effectiveCoachId)
 
   if (!clients || clients.length === 0) return null
 

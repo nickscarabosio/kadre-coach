@@ -1,5 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { createAdminClient } from '@/lib/supabase/server'
+import { resolveCoachId } from '@/lib/supabase/get-coach-id'
 
 export function getAssistantTools(): Anthropic.Tool[] {
   return [
@@ -91,16 +92,17 @@ export async function executeTool(
   input: Record<string, unknown>
 ): Promise<string> {
   const supabase = createAdminClient()
+  const effectiveCoachId = await resolveCoachId(supabase, coachId)
 
   switch (toolName) {
     case 'list_companies': {
-      const { data } = await supabase.from('clients').select('company_name, status, engagement_score, industry, email').eq('coach_id', coachId).order('company_name')
+      const { data } = await supabase.from('clients').select('company_name, status, engagement_score, industry, email').eq('coach_id', effectiveCoachId).order('company_name')
       return JSON.stringify(data || [])
     }
 
     case 'get_company_details': {
       const name = input.company_name as string
-      const { data: clients } = await supabase.from('clients').select('*').eq('coach_id', coachId).ilike('company_name', `%${name}%`).limit(1)
+      const { data: clients } = await supabase.from('clients').select('*').eq('coach_id', effectiveCoachId).ilike('company_name', `%${name}%`).limit(1)
       if (!clients?.length) return 'Company not found'
       const client = clients[0]
       const { data: contacts } = await supabase.from('contacts').select('*').eq('client_id', client.id)
@@ -109,7 +111,7 @@ export async function executeTool(
     }
 
     case 'list_tasks': {
-      let query = supabase.from('tasks').select('title, description, status, priority, due_date, client_id').eq('coach_id', coachId)
+      let query = supabase.from('tasks').select('title, description, status, priority, due_date, client_id').eq('coach_id', effectiveCoachId)
       if (input.status) query = query.eq('status', input.status as string)
       const { data } = await query.order('due_date', { ascending: true }).limit(20)
       return JSON.stringify(data || [])
@@ -118,20 +120,20 @@ export async function executeTool(
     case 'list_updates': {
       const days = (input.days as number) || 7
       const since = new Date(Date.now() - days * 86400000).toISOString()
-      let query = supabase.from('telegram_updates').select('content, classification, ai_summary, created_at, client_id').eq('coach_id', coachId).gte('created_at', since)
+      let query = supabase.from('telegram_updates').select('content, classification, ai_summary, created_at, client_id').eq('coach_id', effectiveCoachId).gte('created_at', since)
       const { data } = await query.order('created_at', { ascending: false }).limit(30)
       return JSON.stringify(data || [])
     }
 
     case 'get_synthesis': {
       const date = (input.date as string) || new Date().toISOString().split('T')[0]
-      const { data } = await supabase.from('daily_syntheses').select('*').eq('coach_id', coachId).eq('synthesis_date', date).single()
+      const { data } = await supabase.from('daily_syntheses').select('*').eq('coach_id', effectiveCoachId).eq('synthesis_date', date).single()
       return data ? JSON.stringify(data) : 'No synthesis found for this date'
     }
 
     case 'list_reflections': {
       const limit = (input.limit as number) || 10
-      const { data: clients } = await supabase.from('clients').select('id, company_name').eq('coach_id', coachId)
+      const { data: clients } = await supabase.from('clients').select('id, company_name').eq('coach_id', effectiveCoachId)
       const clientIds = (clients || []).map(c => c.id)
       const { data } = await supabase.from('reflections').select('*').in('client_id', clientIds).order('created_at', { ascending: false }).limit(limit)
       return JSON.stringify(data || [])
@@ -139,14 +141,14 @@ export async function executeTool(
 
     case 'search_notes': {
       const query = input.query as string
-      const { data } = await supabase.from('session_notes').select('title, content, session_date, client_id').eq('coach_id', coachId).ilike('content', `%${query}%`).limit(10)
+      const { data } = await supabase.from('session_notes').select('title, content, session_date, client_id').eq('coach_id', effectiveCoachId).ilike('content', `%${query}%`).limit(10)
       return JSON.stringify(data || [])
     }
 
     case 'get_stats': {
-      const { data: clients } = await supabase.from('clients').select('status, engagement_score').eq('coach_id', coachId)
-      const { data: tasks } = await supabase.from('tasks').select('status').eq('coach_id', coachId)
-      const { data: updates } = await supabase.from('telegram_updates').select('id').eq('coach_id', coachId)
+      const { data: clients } = await supabase.from('clients').select('status, engagement_score').eq('coach_id', effectiveCoachId)
+      const { data: tasks } = await supabase.from('tasks').select('status').eq('coach_id', effectiveCoachId)
+      const { data: updates } = await supabase.from('telegram_updates').select('id').eq('coach_id', effectiveCoachId)
 
       const stats = {
         total_companies: clients?.length || 0,
