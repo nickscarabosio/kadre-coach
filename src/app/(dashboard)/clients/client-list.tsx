@@ -25,7 +25,7 @@ const statusColors: Record<string, string> = {
 }
 
 export function ClientList({ clients }: ClientListProps) {
-  const [viewMode, setViewMode] = useState<'card' | 'list'>('card')
+  const [viewMode, setViewMode] = useState<'card' | 'list'>('list')
   const [search, setSearch] = useState('')
 
   const filtered = clients.filter((c) => {

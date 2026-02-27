@@ -37,5 +37,11 @@ export default async function SettingsPage() {
     } : {}),
   }
 
-  return <SettingsClient coach={coach} prefs={prefs} />
+  const { data: snippets } = await supabase
+    .from('coach_message_snippets')
+    .select('*')
+    .eq('coach_id', user.id)
+    .order('sort_order', { ascending: true })
+
+  return <SettingsClient coach={coach} prefs={prefs} snippets={snippets ?? []} />
 }

@@ -1,7 +1,7 @@
 'use client'
 
-import { useState } from 'react'
-import { Plus, X, Search } from 'lucide-react'
+import { useState, useRef } from 'react'
+import { Plus, X, Search, FileText } from 'lucide-react'
 import { createConversation } from './actions'
 import { useRouter } from 'next/navigation'
 
@@ -17,14 +17,21 @@ interface ClientOption {
   company_name: string
 }
 
+interface SnippetOption {
+  id: string
+  title: string
+  body: string
+}
+
 interface NewMessageModalProps {
   contacts: Contact[]
   clients: ClientOption[]
+  snippets: SnippetOption[]
 }
 
 type RecipientType = 'individual' | 'company' | 'coach'
 
-export function NewMessageModal({ contacts, clients }: NewMessageModalProps) {
+export function NewMessageModal({ contacts, clients, snippets }: NewMessageModalProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [recipientType, setRecipientType] = useState<RecipientType>('individual')
   const [selectedContacts, setSelectedContacts] = useState<string[]>([])
@@ -33,7 +40,25 @@ export function NewMessageModal({ contacts, clients }: NewMessageModalProps) {
   const [subject, setSubject] = useState('')
   const [search, setSearch] = useState('')
   const [sending, setSending] = useState(false)
+  const [snippetOpen, setSnippetOpen] = useState(false)
+  const messageRef = useRef<HTMLTextAreaElement>(null)
   const router = useRouter()
+
+  const insertSnippet = (body: string) => {
+    const ta = messageRef.current
+    if (ta) {
+      const start = ta.selectionStart
+      const end = ta.selectionEnd
+      const before = message.slice(0, start)
+      const after = message.slice(end)
+      setMessage(before + body + after)
+      setSnippetOpen(false)
+      setTimeout(() => ta.focus(), 0)
+    } else {
+      setMessage(prev => prev + body)
+      setSnippetOpen(false)
+    }
+  }
 
   const filteredContacts = contacts.filter(c =>
     c.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -186,8 +211,37 @@ export function NewMessageModal({ contacts, clients }: NewMessageModalProps) {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-primary mb-1.5">Message *</label>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="block text-sm font-medium text-primary">Message *</label>
+                  {snippets.length > 0 && (
+                    <div className="relative">
+                      <button
+                        type="button"
+                        onClick={() => setSnippetOpen(!snippetOpen)}
+                        className="inline-flex items-center gap-1.5 text-xs text-muted hover:text-primary"
+                      >
+                        <FileText className="w-3.5 h-3.5" />
+                        Insert snippet
+                      </button>
+                      {snippetOpen && (
+                        <div className="absolute right-0 top-full mt-1 w-56 bg-surface border border-border rounded-lg shadow-nav py-1 z-10 max-h-48 overflow-y-auto">
+                          {snippets.map(s => (
+                            <button
+                              key={s.id}
+                              type="button"
+                              onClick={() => insertSnippet(s.body)}
+                              className="w-full text-left px-3 py-2 text-sm text-primary hover:bg-primary-5 truncate"
+                            >
+                              {s.title}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
                 <textarea
+                  ref={messageRef}
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
                   rows={4}

@@ -22,7 +22,9 @@ export default async function SynthesesPage() {
       </div>
 
       {syntheses && syntheses.length > 0 ? (
-        <SynthesisList syntheses={syntheses} />
+        <div className="max-w-5xl mx-auto">
+          <SynthesisList syntheses={syntheses} />
+        </div>
       ) : (
         <div className="text-center py-12 bg-surface border border-border rounded-xl shadow-card">
           <BookOpen className="w-12 h-12 text-muted mx-auto mb-4" />

@@ -1,25 +1,28 @@
 'use client'
 
 import { useState } from 'react'
-import { User, Bell, MessageSquare } from 'lucide-react'
+import { User, Bell, MessageSquare, FileText } from 'lucide-react'
 import { ProfileForm } from './profile-form'
 import { NotificationSettings } from './notification-settings'
 import { TelegramConnect } from './telegram-connect'
-import type { Coach, NotificationPreferences } from '@/types/database'
+import { MessageSnippets } from './message-snippets'
+import type { Coach, CoachMessageSnippet, NotificationPreferences } from '@/types/database'
 
 interface SettingsClientProps {
   coach: Coach
   prefs: NotificationPreferences
+  snippets: CoachMessageSnippet[]
 }
 
 const tabs = [
   { id: 'profile' as const, label: 'Profile', icon: User },
   { id: 'notifications' as const, label: 'Notifications', icon: Bell },
+  { id: 'snippets' as const, label: 'Message snippets', icon: FileText },
   { id: 'integrations' as const, label: 'Integrations', icon: MessageSquare },
 ]
 
-export function SettingsClient({ coach, prefs }: SettingsClientProps) {
-  const [activeTab, setActiveTab] = useState<'profile' | 'notifications' | 'integrations'>('profile')
+export function SettingsClient({ coach, prefs, snippets }: SettingsClientProps) {
+  const [activeTab, setActiveTab] = useState<'profile' | 'notifications' | 'snippets' | 'integrations'>('profile')
 
   return (
     <div className="p-8 max-w-3xl">
@@ -65,6 +68,13 @@ export function SettingsClient({ coach, prefs }: SettingsClientProps) {
             <div className="bg-surface border border-border rounded-xl p-6 shadow-card">
               <h2 className="text-lg font-semibold text-primary mb-4">Notifications</h2>
               <NotificationSettings preferences={prefs} />
+            </div>
+          )}
+
+          {activeTab === 'snippets' && (
+            <div className="bg-surface border border-border rounded-xl p-6 shadow-card">
+              <h2 className="text-lg font-semibold text-primary mb-4">Message snippets</h2>
+              <MessageSnippets snippets={snippets} />
             </div>
           )}
 

@@ -22,6 +22,8 @@ export type Database = {
           phone: string | null
           todoist_api_token: string | null
           todoist_sync_enabled: boolean
+          bio: string | null
+          booking_link: string | null
           created_at: string
           updated_at: string
         }
@@ -37,6 +39,8 @@ export type Database = {
           phone?: string | null
           todoist_api_token?: string | null
           todoist_sync_enabled?: boolean
+          bio?: string | null
+          booking_link?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -52,6 +56,37 @@ export type Database = {
           phone?: string | null
           todoist_api_token?: string | null
           todoist_sync_enabled?: boolean
+          bio?: string | null
+          booking_link?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      coach_message_snippets: {
+        Row: {
+          id: string
+          coach_id: string
+          title: string
+          body: string
+          sort_order: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          coach_id: string
+          title: string
+          body: string
+          sort_order?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          coach_id?: string
+          title?: string
+          body?: string
+          sort_order?: number
           updated_at?: string
         }
         Relationships: []
@@ -1071,6 +1106,7 @@ export type Database = {
 }
 
 export type Coach = Database['public']['Tables']['coaches']['Row']
+export type CoachMessageSnippet = Database['public']['Tables']['coach_message_snippets']['Row']
 export type Client = Database['public']['Tables']['clients']['Row']
 export type Company = Database['public']['Tables']['clients']['Row']
 export type Program = Database['public']['Tables']['programs']['Row']

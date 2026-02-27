@@ -32,6 +32,7 @@ export function UpdatesFeed({ updates: initialUpdates, clients }: UpdatesFeedPro
   const [filterType, setFilterType] = useState<string>('all')
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editContent, setEditContent] = useState('')
+  const [expandedContentId, setExpandedContentId] = useState<string | null>(null)
 
   const clientMap = Object.fromEntries(clients.map(c => [c.id, c.company_name]))
 
@@ -77,6 +78,16 @@ export function UpdatesFeed({ updates: initialUpdates, clients }: UpdatesFeedPro
       return update.voice_transcript
     }
     return update.content
+  }
+
+  // First two sentences for scannable preview
+  const firstTwoSentences = (text: string) => {
+    if (!text || !text.trim()) return ''
+    const trimmed = text.trim()
+    const parts = trimmed.split(/(?<=[.!?])\s+/)
+    if (parts.length >= 2) return (parts[0] + ' ' + parts[1]).trim()
+    if (parts.length === 1 && parts[0]) return parts[0].trim()
+    return trimmed.slice(0, 200)
   }
 
   return (
@@ -125,45 +136,8 @@ export function UpdatesFeed({ updates: initialUpdates, clients }: UpdatesFeedPro
                         <Icon className="w-4 h-4 text-muted" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1 flex-wrap">
-                          {company && (
-                            <span className="inline-flex items-center gap-1 text-xs font-medium text-secondary bg-secondary-10 px-2 py-0.5 rounded-full">
-                              <Tag className="w-3 h-3" />
-                              {company}
-                            </span>
-                          )}
-                          {update.classification && (
-                            <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${classificationColors[update.classification] || 'bg-primary-5 text-muted'}`}>
-                              {update.classification}
-                            </span>
-                          )}
-                          <span className="text-xs text-muted ml-auto">
-                            {format(new Date(update.created_at), 'h:mm a')}
-                          </span>
-                          {/* Edit/Delete buttons */}
-                          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                            {!isEditing && (
-                              <>
-                                <button
-                                  onClick={() => handleEditStart(update)}
-                                  className="p-1 text-muted hover:text-primary rounded transition-colors"
-                                  title="Edit"
-                                >
-                                  <Pencil className="w-3.5 h-3.5" />
-                                </button>
-                                <button
-                                  onClick={() => handleDelete(update.id)}
-                                  className="p-1 text-muted hover:text-red-500 rounded transition-colors"
-                                  title="Delete"
-                                >
-                                  <Trash2 className="w-3.5 h-3.5" />
-                                </button>
-                              </>
-                            )}
-                          </div>
-                        </div>
                         {isEditing ? (
-                          <div className="mt-1">
+                          <div>
                             <textarea
                               value={editContent}
                               onChange={(e) => setEditContent(e.target.value)}
@@ -189,7 +163,68 @@ export function UpdatesFeed({ updates: initialUpdates, clients }: UpdatesFeedPro
                             </div>
                           </div>
                         ) : (
-                          <ExpandableText text={displayContent(update)} lines={2} />
+                          <>
+                            <p className="text-sm text-primary font-medium leading-snug mb-1.5 whitespace-pre-wrap">
+                              {(() => {
+                                const content = displayContent(update)
+                                const preview = firstTwoSentences(content) || content.slice(0, 120)
+                                return preview + (content.length > preview.length ? '…' : '')
+                              })()}
+                            </p>
+                            <div className="flex items-center gap-2 flex-wrap">
+                              {company && (
+                                <span className="inline-flex items-center gap-1 text-xs font-medium text-secondary bg-secondary-10 px-2 py-0.5 rounded-full">
+                                  <Tag className="w-3 h-3" />
+                                  {company}
+                                </span>
+                              )}
+                              {update.classification && (
+                                <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${classificationColors[update.classification] || 'bg-primary-5 text-muted'}`}>
+                                  {update.classification}
+                                </span>
+                              )}
+                              <span className="text-xs text-muted">
+                                {format(new Date(update.created_at), 'h:mm a')}
+                              </span>
+                              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity ml-auto">
+                                <button
+                                  onClick={() => handleEditStart(update)}
+                                  className="p-1 text-muted hover:text-primary rounded transition-colors"
+                                  title="Edit"
+                                >
+                                  <Pencil className="w-3.5 h-3.5" />
+                                </button>
+                                <button
+                                  onClick={() => handleDelete(update.id)}
+                                  className="p-1 text-muted hover:text-red-500 rounded transition-colors"
+                                  title="Delete"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            </div>
+                            {(() => {
+                              const content = displayContent(update)
+                              const preview = firstTwoSentences(content) || content.slice(0, 120)
+                              const hasMore = content.length > preview.length
+                              const isExpanded = expandedContentId === update.id
+                              if (!hasMore) return null
+                              return (
+                                <div className="mt-2">
+                                  <button
+                                    type="button"
+                                    onClick={() => setExpandedContentId(isExpanded ? null : update.id)}
+                                    className="text-xs text-secondary hover:text-secondary/80 font-medium"
+                                  >
+                                    {isExpanded ? 'Show less' : 'View more'}
+                                  </button>
+                                  {isExpanded && (
+                                    <p className="text-sm text-primary/80 whitespace-pre-wrap mt-1">{content}</p>
+                                  )}
+                                </div>
+                              )
+                            })()}
+                          </>
                         )}
                       </div>
                     </div>

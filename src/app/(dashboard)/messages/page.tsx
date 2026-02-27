@@ -28,6 +28,12 @@ export default async function MessagesPage() {
     company_name: clientMap[c.client_id] || '',
   }))
 
+  const { data: snippets } = user ? await supabase
+    .from('coach_message_snippets')
+    .select('id, title, body')
+    .eq('coach_id', user.id)
+    .order('sort_order', { ascending: true }) : { data: null }
+
   // Fetch conversations
   const { data: conversations } = user ? await supabase
     .from('conversations')
@@ -73,6 +79,7 @@ export default async function MessagesPage() {
         <NewMessageModal
           contacts={contactsWithCompany}
           clients={(clients || []).map(c => ({ id: c.id, company_name: c.company_name }))}
+          snippets={snippets ?? []}
         />
       </div>
 
@@ -93,6 +100,7 @@ export default async function MessagesPage() {
           <NewMessageModal
             contacts={contactsWithCompany}
             clients={(clients || []).map(c => ({ id: c.id, company_name: c.company_name }))}
+            snippets={snippets ?? []}
           />
         </div>
       )}
