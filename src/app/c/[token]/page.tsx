@@ -28,11 +28,25 @@ export default async function ClientPortalPage({
     .order('created_at', { ascending: false })
     .limit(20)
 
-  const { data: resources } = await supabase
-    .from('resources')
+  const { data: documentShares } = await supabase
+    .from('document_shares')
+    .select('document_id')
+    .eq('client_id', client.id)
+
+  const sharedDocIds = (documentShares || []).map(s => s.document_id)
+
+  const { data: documents } = sharedDocIds.length > 0 ? await supabase
+    .from('documents')
+    .select('*')
+    .or(`id.in.(${sharedDocIds.join(',')}),client_id.eq.${client.id},client_id.is.null`)
+    .eq('coach_id', client.coach_id)
+    .eq('status', 'active')
+    .order('created_at', { ascending: false }) : await supabase
+    .from('documents')
     .select('*')
     .or(`client_id.eq.${client.id},client_id.is.null`)
     .eq('coach_id', client.coach_id)
+    .eq('status', 'active')
     .order('created_at', { ascending: false })
 
   const { data: reflections } = await supabase
@@ -53,7 +67,7 @@ export default async function ClientPortalPage({
         <PortalTabs
           clientId={client.id}
           messages={messages || []}
-          resources={resources || []}
+          documents={documents || []}
           reflections={reflections || []}
         />
       </div>

@@ -50,7 +50,8 @@ const navItems: { label: string; href?: string; dropdown?: NavDropdown }[] = [
       items: [
         { name: 'Tasks', href: '/tasks' },
         { name: 'Programs', href: '/programs' },
-        { name: 'Resources', href: '/resources' },
+        { name: 'Library', href: '/library' },
+        { name: 'Forms', href: '/forms' },
       ],
     },
   },

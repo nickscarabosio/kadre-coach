@@ -1,26 +1,26 @@
 'use client'
 
 import { useState } from 'react'
-import { Message, Resource, Reflection } from '@/types/database'
+import { Message, Document, Reflection } from '@/types/database'
 import { CheckInForm } from './check-in-form'
 import { PortalMessages } from './messages'
-import { PortalResources } from './resources'
+import { PortalDocuments } from './documents'
 import { PortalProgress } from './progress'
 
 interface PortalTabsProps {
   clientId: string
   messages: Message[]
-  resources: Resource[]
+  documents: Document[]
   reflections: Reflection[]
 }
 
-export function PortalTabs({ clientId, messages, resources, reflections }: PortalTabsProps) {
-  const [activeTab, setActiveTab] = useState<'checkin' | 'messages' | 'resources' | 'progress'>('checkin')
+export function PortalTabs({ clientId, messages, documents, reflections }: PortalTabsProps) {
+  const [activeTab, setActiveTab] = useState<'checkin' | 'messages' | 'documents' | 'progress'>('checkin')
 
   const tabs = [
     { id: 'checkin' as const, name: 'Check-in' },
     { id: 'messages' as const, name: 'Messages', count: messages.length },
-    { id: 'resources' as const, name: 'Resources', count: resources.length },
+    { id: 'documents' as const, name: 'Documents', count: documents.length },
     { id: 'progress' as const, name: 'Progress' },
   ]
 
@@ -53,9 +53,9 @@ export function PortalTabs({ clientId, messages, resources, reflections }: Porta
           <PortalMessages messages={messages} />
         </div>
       )}
-      {activeTab === 'resources' && (
+      {activeTab === 'documents' && (
         <div className="bg-surface border border-border rounded-xl p-6 shadow-card">
-          <PortalResources resources={resources} />
+          <PortalDocuments documents={documents} />
         </div>
       )}
       {activeTab === 'progress' && (

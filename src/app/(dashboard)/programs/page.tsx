@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
-import { BookOpen, Clock, Users } from 'lucide-react'
+import { BookOpen, Clock, Users, Layers } from 'lucide-react'
 import { AddProgramButton } from './add-program-button'
 
 export default async function ProgramsPage() {
@@ -21,6 +21,17 @@ export default async function ProgramsPage() {
 
   const enrollmentCounts = (enrollments || []).reduce((acc, e) => {
     acc[e.program_id] = (acc[e.program_id] || 0) + 1
+    return acc
+  }, {} as Record<string, number>)
+
+  // Get phase counts per program
+  const { data: phases } = user ? await supabase
+    .from('program_phases')
+    .select('program_id')
+    .in('program_id', programs?.map(p => p.id) || []) : { data: null }
+
+  const phaseCounts = (phases || []).reduce((acc, p) => {
+    acc[p.program_id] = (acc[p.program_id] || 0) + 1
     return acc
   }, {} as Record<string, number>)
 
@@ -62,6 +73,10 @@ export default async function ProgramsPage() {
                 <span className="flex items-center gap-1">
                   <Clock className="w-4 h-4" />
                   {program.duration_weeks}w
+                </span>
+                <span className="flex items-center gap-1">
+                  <Layers className="w-4 h-4" />
+                  {phaseCounts[program.id] || 0} phases
                 </span>
                 <span className="flex items-center gap-1">
                   <Users className="w-4 h-4" />

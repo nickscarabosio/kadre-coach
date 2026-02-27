@@ -149,6 +149,7 @@ export type Database = {
           current_week: number
           completion_rate: number
           status: string
+          current_phase_id: string | null
           created_at: string
           updated_at: string
         }
@@ -160,6 +161,7 @@ export type Database = {
           current_week?: number
           completion_rate?: number
           status?: string
+          current_phase_id?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -170,6 +172,7 @@ export type Database = {
           current_week?: number
           completion_rate?: number
           status?: string
+          current_phase_id?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -291,6 +294,7 @@ export type Database = {
           content: string
           is_pinned: boolean
           session_date: string
+          recording_url: string | null
           created_at: string
           updated_at: string
         }
@@ -302,6 +306,7 @@ export type Database = {
           content: string
           is_pinned?: boolean
           session_date?: string
+          recording_url?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -313,6 +318,7 @@ export type Database = {
           content?: string
           is_pinned?: boolean
           session_date?: string
+          recording_url?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -585,6 +591,7 @@ export type Database = {
           notes: string | null
           duration_minutes: number | null
           check_in_date: string
+          recording_url: string | null
           created_at: string
           updated_at: string
         }
@@ -597,6 +604,7 @@ export type Database = {
           notes?: string | null
           duration_minutes?: number | null
           check_in_date?: string
+          recording_url?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -609,6 +617,7 @@ export type Database = {
           notes?: string | null
           duration_minutes?: number | null
           check_in_date?: string
+          recording_url?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -642,6 +651,47 @@ export type Database = {
         }
         Relationships: []
       }
+      client_projects: {
+        Row: {
+          id: string
+          client_id: string
+          coach_id: string
+          title: string
+          description: string | null
+          status: string
+          sort_order: number
+          assigned_to: string | null
+          due_date: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          client_id: string
+          coach_id: string
+          title: string
+          description?: string | null
+          status?: string
+          sort_order?: number
+          assigned_to?: string | null
+          due_date?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          client_id?: string
+          coach_id?: string
+          title?: string
+          description?: string | null
+          status?: string
+          sort_order?: number
+          assigned_to?: string | null
+          due_date?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       conversation_participants: {
         Row: {
           id: string
@@ -665,6 +715,342 @@ export type Database = {
           participant_type?: string
           coach_id?: string | null
           contact_id?: string | null
+        }
+        Relationships: []
+      }
+      program_phases: {
+        Row: {
+          id: string
+          program_id: string
+          name: string
+          description: string | null
+          duration_value: number
+          duration_unit: string
+          order_index: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          program_id: string
+          name: string
+          description?: string | null
+          duration_value?: number
+          duration_unit?: string
+          order_index?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          program_id?: string
+          name?: string
+          description?: string | null
+          duration_value?: number
+          duration_unit?: string
+          order_index?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      program_assignments: {
+        Row: {
+          id: string
+          phase_id: string
+          coach_id: string
+          title: string
+          description: string | null
+          assignment_type: string
+          response_type: string
+          recurrence_pattern: string | null
+          recurrence_day: number | null
+          video_url: string | null
+          resource_url: string | null
+          resource_name: string | null
+          delay_days: number
+          order_index: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          phase_id: string
+          coach_id: string
+          title: string
+          description?: string | null
+          assignment_type?: string
+          response_type?: string
+          recurrence_pattern?: string | null
+          recurrence_day?: number | null
+          video_url?: string | null
+          resource_url?: string | null
+          resource_name?: string | null
+          delay_days?: number
+          order_index?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          phase_id?: string
+          coach_id?: string
+          title?: string
+          description?: string | null
+          assignment_type?: string
+          response_type?: string
+          recurrence_pattern?: string | null
+          recurrence_day?: number | null
+          video_url?: string | null
+          resource_url?: string | null
+          resource_name?: string | null
+          delay_days?: number
+          order_index?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      assigned_assignments: {
+        Row: {
+          id: string
+          coach_id: string
+          assignment_id: string | null
+          enrollment_id: string | null
+          client_id: string | null
+          assignee_name: string | null
+          assignee_email: string | null
+          title: string
+          description: string | null
+          status: string
+          due_date: string | null
+          response_text: string | null
+          response_file_url: string | null
+          email_sent_at: string | null
+          completed_at: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          coach_id: string
+          assignment_id?: string | null
+          enrollment_id?: string | null
+          client_id?: string | null
+          assignee_name?: string | null
+          assignee_email?: string | null
+          title: string
+          description?: string | null
+          status?: string
+          due_date?: string | null
+          response_text?: string | null
+          response_file_url?: string | null
+          email_sent_at?: string | null
+          completed_at?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          coach_id?: string
+          assignment_id?: string | null
+          enrollment_id?: string | null
+          client_id?: string | null
+          assignee_name?: string | null
+          assignee_email?: string | null
+          title?: string
+          description?: string | null
+          status?: string
+          due_date?: string | null
+          response_text?: string | null
+          response_file_url?: string | null
+          email_sent_at?: string | null
+          completed_at?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      assignment_templates: {
+        Row: {
+          id: string
+          coach_id: string
+          title: string
+          description: string | null
+          assignment_type: string
+          video_url: string | null
+          resource_url: string | null
+          resource_name: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          coach_id: string
+          title: string
+          description?: string | null
+          assignment_type?: string
+          video_url?: string | null
+          resource_url?: string | null
+          resource_name?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          coach_id?: string
+          title?: string
+          description?: string | null
+          assignment_type?: string
+          video_url?: string | null
+          resource_url?: string | null
+          resource_name?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      documents: {
+        Row: {
+          id: string
+          coach_id: string
+          category: string
+          document_type: string
+          title: string
+          description: string | null
+          file_name: string | null
+          file_url: string | null
+          file_path: string | null
+          file_type: string | null
+          file_size: number | null
+          content: string | null
+          url: string | null
+          status: string
+          client_id: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          coach_id: string
+          category?: string
+          document_type?: string
+          title: string
+          description?: string | null
+          file_name?: string | null
+          file_url?: string | null
+          file_path?: string | null
+          file_type?: string | null
+          file_size?: number | null
+          content?: string | null
+          url?: string | null
+          status?: string
+          client_id?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          coach_id?: string
+          category?: string
+          document_type?: string
+          title?: string
+          description?: string | null
+          file_name?: string | null
+          file_url?: string | null
+          file_path?: string | null
+          file_type?: string | null
+          file_size?: number | null
+          content?: string | null
+          url?: string | null
+          status?: string
+          client_id?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      document_shares: {
+        Row: {
+          id: string
+          document_id: string
+          client_id: string
+          shared_at: string
+        }
+        Insert: {
+          id?: string
+          document_id: string
+          client_id: string
+          shared_at?: string
+        }
+        Update: {
+          id?: string
+          document_id?: string
+          client_id?: string
+          shared_at?: string
+        }
+        Relationships: []
+      }
+      forms: {
+        Row: {
+          id: string
+          coach_id: string
+          title: string
+          description: string | null
+          fields: Json
+          status: string
+          public_token: string | null
+          public_token_expires_at: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          coach_id: string
+          title: string
+          description?: string | null
+          fields?: Json
+          status?: string
+          public_token?: string | null
+          public_token_expires_at?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          coach_id?: string
+          title?: string
+          description?: string | null
+          fields?: Json
+          status?: string
+          public_token?: string | null
+          public_token_expires_at?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      form_submissions: {
+        Row: {
+          id: string
+          form_id: string
+          client_id: string | null
+          submitter_name: string | null
+          submitter_email: string | null
+          responses: Json
+          submitted_at: string
+        }
+        Insert: {
+          id?: string
+          form_id: string
+          client_id?: string | null
+          submitter_name?: string | null
+          submitter_email?: string | null
+          responses?: Json
+          submitted_at?: string
+        }
+        Update: {
+          id?: string
+          form_id?: string
+          client_id?: string | null
+          submitter_name?: string | null
+          submitter_email?: string | null
+          responses?: Json
+          submitted_at?: string
         }
         Relationships: []
       }
@@ -703,6 +1089,15 @@ export type TaskLabelAssignment = Database['public']['Tables']['task_label_assig
 export type CoachCheckIn = Database['public']['Tables']['coach_check_ins']['Row']
 export type Conversation = Database['public']['Tables']['conversations']['Row']
 export type ConversationParticipant = Database['public']['Tables']['conversation_participants']['Row']
+export type ClientProject = Database['public']['Tables']['client_projects']['Row']
+export type ProgramPhase = Database['public']['Tables']['program_phases']['Row']
+export type ProgramAssignment = Database['public']['Tables']['program_assignments']['Row']
+export type AssignedAssignment = Database['public']['Tables']['assigned_assignments']['Row']
+export type AssignmentTemplate = Database['public']['Tables']['assignment_templates']['Row']
+export type Document = Database['public']['Tables']['documents']['Row']
+export type DocumentShare = Database['public']['Tables']['document_shares']['Row']
+export type Form = Database['public']['Tables']['forms']['Row']
+export type FormSubmission = Database['public']['Tables']['form_submissions']['Row']
 
 export type NotificationPreferences = {
   email_daily_synthesis: boolean
