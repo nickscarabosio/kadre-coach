@@ -1,8 +1,8 @@
 import { createClient } from '@/lib/supabase/server'
 import { getCoachId } from '@/lib/supabase/get-coach-id'
-import Link from 'next/link'
-import { FileText, Globe, FileEdit } from 'lucide-react'
+import { FileEdit } from 'lucide-react'
 import { AddFormButton } from './add-form-button'
+import { FormsList } from './forms-list'
 
 export default async function FormsPage() {
   const supabase = await createClient()
@@ -37,46 +37,7 @@ export default async function FormsPage() {
       </div>
 
       {forms && forms.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {forms.map((form) => (
-            <Link
-              key={form.id}
-              href={`/forms/${form.id}`}
-              className="bg-surface border border-border rounded-xl p-6 hover:shadow-nav transition-shadow shadow-card"
-            >
-              <div className="flex items-start justify-between mb-3">
-                <div className="w-10 h-10 rounded-lg bg-secondary-10 flex items-center justify-center">
-                  <FileEdit className="w-5 h-5 text-secondary" />
-                </div>
-                <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-                  form.status === 'published'
-                    ? 'bg-emerald-50 text-emerald-700'
-                    : form.status === 'archived'
-                    ? 'bg-primary-5 text-muted'
-                    : 'bg-amber-50 text-amber-700'
-                }`}>
-                  {form.status.charAt(0).toUpperCase() + form.status.slice(1)}
-                </span>
-              </div>
-
-              <h3 className="text-primary font-semibold mb-1">{form.title}</h3>
-              {form.description && (
-                <p className="text-sm text-muted line-clamp-2 mb-4">{form.description}</p>
-              )}
-
-              <div className="flex items-center gap-4 text-sm text-muted">
-                <span className="flex items-center gap-1">
-                  <FileText className="w-4 h-4" />
-                  {(form.fields as unknown[])?.length || 0} fields
-                </span>
-                <span className="flex items-center gap-1">
-                  <Globe className="w-4 h-4" />
-                  {submissionCounts[form.id] || 0} responses
-                </span>
-              </div>
-            </Link>
-          ))}
-        </div>
+        <FormsList forms={forms} submissionCounts={submissionCounts} />
       ) : (
         <div className="text-center py-12 bg-surface border border-border rounded-xl shadow-card">
           <FileEdit className="w-12 h-12 text-muted mx-auto mb-4" />

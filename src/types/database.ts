@@ -25,6 +25,7 @@ export type Database = {
           bio: string | null
           booking_link: string | null
           parent_coach_id: string | null
+          role: string
           created_at: string
           updated_at: string
         }
@@ -43,6 +44,7 @@ export type Database = {
           bio?: string | null
           booking_link?: string | null
           parent_coach_id?: string | null
+          role?: string
           created_at?: string
           updated_at?: string
         }
@@ -61,6 +63,7 @@ export type Database = {
           bio?: string | null
           booking_link?: string | null
           parent_coach_id?: string | null
+          role?: string
           updated_at?: string
         }
         Relationships: []
@@ -94,6 +97,29 @@ export type Database = {
         }
         Relationships: []
       }
+      client_coaches: {
+        Row: {
+          id: string
+          client_id: string
+          coach_id: string
+          is_lead: boolean
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          client_id: string
+          coach_id: string
+          is_lead?: boolean
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          client_id?: string
+          coach_id?: string
+          is_lead?: boolean
+        }
+        Relationships: []
+      }
       clients: {
         Row: {
           id: string
@@ -109,6 +135,7 @@ export type Database = {
           access_token: string
           engagement_score: number
           status: string
+          visibility: string
           created_at: string
           updated_at: string
         }
@@ -126,6 +153,7 @@ export type Database = {
           access_token?: string
           engagement_score?: number
           status?: string
+          visibility?: string
           created_at?: string
           updated_at?: string
         }
@@ -142,6 +170,7 @@ export type Database = {
           role?: string | null
           engagement_score?: number
           status?: string
+          visibility?: string
           updated_at?: string
         }
         Relationships: []
@@ -366,6 +395,8 @@ export type Database = {
           id: string
           coach_id: string
           client_id: string | null
+          project_id: string | null
+          assigned_to_coach_id: string | null
           title: string
           description: string | null
           due_date: string | null
@@ -388,6 +419,8 @@ export type Database = {
           id?: string
           coach_id: string
           client_id?: string | null
+          project_id?: string | null
+          assigned_to_coach_id?: string | null
           title: string
           description?: string | null
           due_date?: string | null
@@ -410,6 +443,8 @@ export type Database = {
           id?: string
           coach_id?: string
           client_id?: string | null
+          project_id?: string | null
+          assigned_to_coach_id?: string | null
           title?: string
           description?: string | null
           due_date?: string | null
@@ -1032,6 +1067,7 @@ export type Database = {
           description: string | null
           fields: Json
           status: string
+          form_type: string | null
           public_token: string | null
           public_token_expires_at: string | null
           created_at: string
@@ -1044,6 +1080,7 @@ export type Database = {
           description?: string | null
           fields?: Json
           status?: string
+          form_type?: string | null
           public_token?: string | null
           public_token_expires_at?: string | null
           created_at?: string
@@ -1056,6 +1093,7 @@ export type Database = {
           description?: string | null
           fields?: Json
           status?: string
+          form_type?: string | null
           public_token?: string | null
           public_token_expires_at?: string | null
           updated_at?: string
@@ -1111,6 +1149,7 @@ export type Database = {
 export type Coach = Database['public']['Tables']['coaches']['Row']
 export type CoachMessageSnippet = Database['public']['Tables']['coach_message_snippets']['Row']
 export type Client = Database['public']['Tables']['clients']['Row']
+export type ClientCoach = Database['public']['Tables']['client_coaches']['Row']
 export type Company = Database['public']['Tables']['clients']['Row']
 export type Program = Database['public']['Tables']['programs']['Row']
 export type Enrollment = Database['public']['Tables']['enrollments']['Row']

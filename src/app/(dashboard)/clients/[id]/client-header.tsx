@@ -117,7 +117,7 @@ export function ClientHeader({ client: initialClient }: ClientHeaderProps) {
             </div>
           </div>
 
-          <div className="text-right">
+          <div className="text-right" title="Based on check-ins, updates, and task completion over the last 4 weeks.">
             <p className="text-sm text-muted mb-1">Engagement Score</p>
             <div className="flex items-center gap-2">
               <div className="w-32 h-3 bg-primary-5 rounded-full overflow-hidden">

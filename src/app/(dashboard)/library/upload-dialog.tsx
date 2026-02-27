@@ -25,19 +25,48 @@ export function UploadDialog({ clients }: { clients: Client[] }) {
     setLoading(true)
     setError(null)
 
-    const formData = new FormData(e.currentTarget)
+    const form = e.currentTarget
+    const formData = new FormData(form)
     formData.set('document_type', docType)
 
     if (docType === 'richtext') {
       formData.set('content', richContent)
     }
 
-    const result = await createDocument(formData)
-
-    if (result.error) {
-      setError(result.error)
-      setLoading(false)
-      return
+    if (docType === 'file') {
+      const files = formData.getAll('file') as File[]
+      const multiFile = files.length > 1
+      if (multiFile) {
+        const category = formData.get('category') as string || 'general'
+        for (const file of files) {
+          if (!file.size) continue
+          const single = new FormData()
+          single.set('document_type', 'file')
+          single.set('title', file.name)
+          single.set('file', file)
+          single.set('category', category)
+          const result = await createDocument(single)
+          if (result.error) {
+            setError(result.error)
+            setLoading(false)
+            return
+          }
+        }
+      } else {
+        const result = await createDocument(formData)
+        if (result.error) {
+          setError(result.error)
+          setLoading(false)
+          return
+        }
+      }
+    } else {
+      const result = await createDocument(formData)
+      if (result.error) {
+        setError(result.error)
+        setLoading(false)
+        return
+      }
     }
 
     setIsOpen(false)
@@ -130,13 +159,15 @@ export function UploadDialog({ clients }: { clients: Client[] }) {
 
               {docType === 'file' && (
                 <div>
-                  <label className="block text-sm font-medium text-primary mb-1.5">File *</label>
+                  <label className="block text-sm font-medium text-primary mb-1.5">File(s) *</label>
                   <input
                     name="file"
                     type="file"
+                    multiple
                     required
                     className="w-full px-4 py-2.5 bg-surface border border-border-strong rounded-lg text-primary file:mr-4 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-secondary-10 file:text-secondary"
                   />
+                  <p className="text-xs text-muted mt-1">Select multiple files to upload each as a separate document (title = file name).</p>
                 </div>
               )}
 

@@ -19,6 +19,7 @@ type TabFilter = 'all' | 'file' | 'link' | 'richtext'
 export function LibraryView({ documents, clients, shares }: LibraryViewProps) {
   const [activeTab, setActiveTab] = useState<TabFilter>('all')
   const [search, setSearch] = useState('')
+  const [clientFilter, setClientFilter] = useState<string>('all')
   const [shareDocId, setShareDocId] = useState<string | null>(null)
   const [deleting, setDeleting] = useState<string | null>(null)
   const router = useRouter()
@@ -30,9 +31,12 @@ export function LibraryView({ documents, clients, shares }: LibraryViewProps) {
     { id: 'richtext', label: 'Documents' },
   ]
 
+  const clientMap = Object.fromEntries(clients.map((c) => [c.id, c.company_name || c.name]))
+
   const filtered = documents.filter((doc) => {
     if (activeTab !== 'all' && doc.document_type !== activeTab) return false
     if (search && !doc.title.toLowerCase().includes(search.toLowerCase())) return false
+    if (clientFilter !== 'all' && doc.client_id !== clientFilter) return false
     return true
   })
 
@@ -75,6 +79,16 @@ export function LibraryView({ documents, clients, shares }: LibraryViewProps) {
       </div>
 
       <div className="flex flex-col sm:flex-row sm:items-center gap-4 mb-6">
+        <select
+          value={clientFilter}
+          onChange={(e) => setClientFilter(e.target.value)}
+          className="px-3 py-2 bg-surface border border-border rounded-lg text-sm text-primary"
+        >
+          <option value="all">All companies</option>
+          {clients.map((c) => (
+            <option key={c.id} value={c.id}>{c.company_name || c.name}</option>
+          ))}
+        </select>
         <div className="flex gap-2">
           {tabs.map((tab) => (
             <button
@@ -129,6 +143,7 @@ export function LibraryView({ documents, clients, shares }: LibraryViewProps) {
                       )}
                     </div>
                     <p className="text-xs text-muted mt-0.5">{typeLabel(doc.document_type)}</p>
+                    <p className="text-xs text-muted mt-0.5">Uploaded by you{doc.client_id && clientMap[doc.client_id] ? ` · ${clientMap[doc.client_id]}` : ''}</p>
                     {doc.description && (
                       <p className="text-xs text-muted mt-1 line-clamp-2">{doc.description}</p>
                     )}

@@ -4,6 +4,31 @@ import { createClient } from '@/lib/supabase/server'
 import { getCoachId } from '@/lib/supabase/get-coach-id'
 import { revalidatePath } from 'next/cache'
 
+export type UpdateClassification = 'communication' | 'insight' | 'admin' | 'progress' | 'blocker'
+
+export async function logUpdate(params: {
+  client_id: string
+  content: string
+  classification: UpdateClassification
+}) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+
+  const { error } = await supabase.from('telegram_updates').insert({
+    coach_id: user.id,
+    client_id: params.client_id,
+    content: params.content,
+    classification: params.classification,
+    message_type: 'text',
+    chat_id: 0,
+  })
+  if (error) return { error: error.message }
+  revalidatePath('/updates')
+  revalidatePath('/dashboard')
+  return { success: true }
+}
+
 export async function deleteUpdate(updateId: string) {
   const supabase = await createClient()
   const coachId = await getCoachId(supabase)

@@ -3,6 +3,8 @@ import { getCoachId } from '@/lib/supabase/get-coach-id'
 import { subHours, addHours } from 'date-fns'
 import { DashboardClient } from './dashboard-client'
 
+const todayIso = () => new Date().toISOString().split('T')[0]
+
 export default async function DashboardPage() {
   const supabase = await createClient()
   const coachId = await getCoachId(supabase)
@@ -33,16 +35,28 @@ export default async function DashboardPage() {
   const clientMap = Object.fromEntries((clients || []).map(c => [c.id, c.company_name]))
   const clientIds = (clients || []).map(c => c.id)
 
-  // Tasks due in 48 hours
   const fortyEightHoursFromNow = addHours(new Date(), 48).toISOString().split('T')[0]
+
+  // Overdue tasks (due_date < today, not completed)
+  const { data: overdueTasks } = await supabase
+    .from('tasks')
+    .select('*')
+    .eq('coach_id', coachId)
+    .neq('status', 'completed')
+    .lt('due_date', todayIso())
+    .order('due_date', { ascending: true })
+    .limit(20)
+
+  // Tasks due in next 48 hours (including today)
   const { data: dueSoonTasks } = await supabase
     .from('tasks')
     .select('*')
     .eq('coach_id', coachId)
     .neq('status', 'completed')
+    .gte('due_date', todayIso())
     .lte('due_date', fortyEightHoursFromNow)
     .order('due_date', { ascending: true })
-    .limit(10)
+    .limit(20)
 
   // Recent check-ins
   const { data: recentReflections } = clientIds.length > 0 ? await supabase
@@ -58,10 +72,10 @@ export default async function DashboardPage() {
     company_name: r.client_id ? clientMap[r.client_id] || 'Unknown' : 'Unknown',
   }))
 
-  // Active projects across all clients
+  // Active projects with created_at for start date
   const { data: activeProjects } = await supabase
     .from('client_projects')
-    .select('id, client_id, title, due_date')
+    .select('id, client_id, title, due_date, created_at, status')
     .eq('coach_id', coachId)
     .eq('status', 'active')
     .order('due_date', { ascending: true, nullsFirst: false })
@@ -71,14 +85,16 @@ export default async function DashboardPage() {
     company_name: p.client_id ? clientMap[p.client_id] || 'Unknown' : 'Unknown',
   }))
 
+  const clientsList = clients || []
+
   return (
     <DashboardClient
-      updates={recentUpdates || []}
-      tasks={dueSoonTasks || []}
-      reflections={reflectionsWithCompany}
+      overdueTasks={overdueTasks || []}
+      dueSoonTasks={dueSoonTasks || []}
       clientMap={clientMap}
       coachName={coach?.full_name || null}
       activeProjects={activeProjectsWithCompany}
+      clients={clientsList}
     />
   )
 }

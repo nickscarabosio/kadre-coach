@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Task, Client, TaskSection, TaskLabel } from '@/types/database'
+import { Task, Client, TaskSection, TaskLabel, ClientProject } from '@/types/database'
 import { Flag, Trash2, RefreshCw } from 'lucide-react'
 import { SlideOver } from '@/components/ui/slide-over'
 import { updateTask, deleteTask } from './actions'
@@ -9,6 +9,7 @@ import { updateTask, deleteTask } from './actions'
 interface TaskDetailPanelProps {
   task: Task
   clients: Client[]
+  projects?: ClientProject[]
   sections: TaskSection[]
   labels: TaskLabel[]
   taskLabelIds: string[]
@@ -27,7 +28,7 @@ const priorityOptions = [
 ]
 
 export function TaskDetailPanel({
-  task, clients, sections, labels, taskLabelIds, subtasks,
+  task, clients, projects = [], sections, labels, taskLabelIds, subtasks,
   open, onClose, onUpdate, onDelete,
 }: TaskDetailPanelProps) {
   const [title, setTitle] = useState(task.title)
@@ -86,9 +87,23 @@ export function TaskDetailPanel({
           />
         </div>
 
+        {/* Status */}
+        <div>
+          <label className="block text-xs font-semibold text-muted uppercase mb-1">Status</label>
+          <select
+            value={task.status}
+            onChange={(e) => saveField('status', e.target.value)}
+            className="w-full px-3 py-2 bg-surface border border-border-strong rounded-lg text-primary text-sm focus:outline-none focus:ring-2 focus:ring-secondary/40 focus:border-secondary"
+          >
+            <option value="pending">Pending</option>
+            <option value="in_progress">In Progress</option>
+            <option value="completed">Completed</option>
+          </select>
+        </div>
+
         {/* Priority */}
         <div>
-          <label className="block text-xs font-semibold text-muted uppercase mb-1">Priority</label>
+          <label className="block text-xs font-semibold text-muted uppercase mb-1">Priority (High / Medium / Low)</label>
           <div className="flex items-center gap-2">
             {priorityOptions.map(p => (
               <button
@@ -164,6 +179,22 @@ export function TaskDetailPanel({
             </select>
           </div>
         </div>
+
+        {projects.length > 0 && (
+          <div>
+            <label className="block text-xs font-semibold text-muted uppercase mb-1">Project</label>
+            <select
+              value={task.project_id || ''}
+              onChange={(e) => saveField('project_id', e.target.value || null)}
+              className="w-full px-3 py-2 bg-surface border border-border-strong rounded-lg text-primary text-sm focus:outline-none focus:ring-2 focus:ring-secondary/40 focus:border-secondary"
+            >
+              <option value="">None</option>
+              {projects.filter(p => p.client_id === task.client_id).map(p => (
+                <option key={p.id} value={p.id}>{p.title}</option>
+              ))}
+            </select>
+          </div>
+        )}
 
         {/* Recurring */}
         <div className="flex items-center gap-3">

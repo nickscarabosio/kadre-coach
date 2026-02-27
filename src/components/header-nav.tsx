@@ -12,7 +12,10 @@ import {
   Building2,
   Rss,
   Zap,
+  Menu,
+  X,
 } from 'lucide-react'
+import { GlobalSearch } from '@/components/global-search'
 
 interface DropdownItem {
   name: string
@@ -21,7 +24,6 @@ interface DropdownItem {
 
 interface NavDropdown {
   label: string
-  hubHref: string
   items: DropdownItem[]
 }
 
@@ -45,7 +47,6 @@ const navItems: (NavLink | NavDropdownItem)[] = [
     icon: Building2,
     dropdown: {
       label: 'Companies',
-      hubHref: '/clients/hub',
       items: [
         { name: 'All Companies', href: '/clients' },
         { name: 'People', href: '/people' },
@@ -57,7 +58,6 @@ const navItems: (NavLink | NavDropdownItem)[] = [
     icon: Rss,
     dropdown: {
       label: 'Updates',
-      hubHref: '/updates/hub',
       items: [
         { name: 'Updates', href: '/updates' },
         { name: 'Syntheses', href: '/syntheses' },
@@ -69,7 +69,6 @@ const navItems: (NavLink | NavDropdownItem)[] = [
     icon: Zap,
     dropdown: {
       label: 'Action',
-      hubHref: '/action/hub',
       items: [
         { name: 'Tasks', href: '/tasks' },
         { name: 'Programs', href: '/programs' },
@@ -124,8 +123,8 @@ function NavDropdown({
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >
-      <Link
-        href={dropdown.hubHref}
+      <button
+        type="button"
         className={`flex items-center gap-2 px-3 py-2 text-sm font-medium transition-colors rounded-lg ${
           isActive
             ? 'text-secondary'
@@ -134,7 +133,7 @@ function NavDropdown({
       >
         <Icon className="w-4 h-4" />
         {dropdown.label}
-      </Link>
+      </button>
       {isActive && (
         <div className="absolute bottom-0 left-3 right-3 h-0.5 bg-secondary" />
       )}
@@ -160,6 +159,7 @@ export function HeaderNav() {
   const router = useRouter()
   const supabase = createClient()
   const [avatarOpen, setAvatarOpen] = useState(false)
+  const [mobileNavOpen, setMobileNavOpen] = useState(false)
   const [coach, setCoach] = useState<{ avatar_url: string | null; full_name: string | null }>({ avatar_url: null, full_name: null })
   const avatarRef = useRef<HTMLDivElement>(null)
 
@@ -194,8 +194,7 @@ export function HeaderNav() {
       return pathname === item.href || pathname.startsWith(item.href + '/')
     }
     if ('dropdown' in item && item.dropdown) {
-      const d = item.dropdown
-      return pathname === d.hubHref || d.items.some(
+      return item.dropdown.items.some(
         (sub) => pathname === sub.href || pathname.startsWith(sub.href + '/')
       )
     }
@@ -203,12 +202,22 @@ export function HeaderNav() {
   }
 
   return (
-    <header className="h-16 sticky top-0 z-50 bg-surface border-b border-border shadow-nav flex items-center justify-between px-6">
-      <Link href="/dashboard" className="text-xl font-bold text-primary shrink-0">
-        Kadre
-      </Link>
+    <header className="h-16 sticky top-0 z-50 bg-surface border-b border-border shadow-nav flex items-center justify-between px-4 sm:px-6">
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          onClick={() => setMobileNavOpen(true)}
+          className="md:hidden p-2 rounded-lg text-muted hover:text-primary hover:bg-primary-5"
+          aria-label="Open menu"
+        >
+          <Menu className="w-6 h-6" />
+        </button>
+        <Link href="/dashboard" className="text-xl font-bold text-primary shrink-0">
+          Kadre
+        </Link>
+      </div>
 
-      <nav className="flex items-center gap-1 absolute left-1/2 -translate-x-1/2">
+      <nav className="hidden md:flex items-center gap-1 absolute left-1/2 -translate-x-1/2">
         {navItems.map((item) => {
           const active = isPathActive(item)
           const Icon = item.icon
@@ -244,7 +253,8 @@ export function HeaderNav() {
         })}
       </nav>
 
-      <div className="flex items-center gap-3 shrink-0">
+      <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+        <GlobalSearch />
         <Link
           href="/messages"
           className={`p-2 rounded-lg transition-colors ${
@@ -275,11 +285,18 @@ export function HeaderNav() {
                 className="flex items-center gap-2 px-4 py-2 text-sm text-primary hover:bg-primary-5 transition-colors"
               >
                 <Settings className="w-4 h-4" />
-                Settings
+                Account settings
+              </Link>
+              <Link
+                href="/settings#notifications"
+                onClick={() => setAvatarOpen(false)}
+                className="flex items-center gap-2 px-4 py-2 text-sm text-primary hover:bg-primary-5 transition-colors"
+              >
+                Notification preferences
               </Link>
               <button
                 onClick={handleSignOut}
-                className="w-full flex items-center gap-2 px-4 py-2 text-sm text-primary hover:bg-primary-5 transition-colors"
+                className="w-full flex items-center gap-2 px-4 py-2 text-sm text-primary hover:bg-primary-5 transition-colors text-left"
               >
                 <LogOut className="w-4 h-4" />
                 Sign out
@@ -288,6 +305,80 @@ export function HeaderNav() {
           )}
         </div>
       </div>
+
+      {/* Mobile nav drawer */}
+      {mobileNavOpen && (
+        <div
+          className="fixed inset-0 z-50 md:hidden"
+          aria-modal="true"
+          role="dialog"
+        >
+          <div
+            className="absolute inset-0 bg-black/40"
+            onClick={() => setMobileNavOpen(false)}
+          />
+          <div className="absolute top-0 left-0 bottom-0 w-72 max-w-[85vw] bg-surface border-r border-border shadow-nav overflow-y-auto">
+            <div className="flex items-center justify-between p-4 border-b border-border">
+              <span className="font-bold text-primary">Menu</span>
+              <button
+                type="button"
+                onClick={() => setMobileNavOpen(false)}
+                className="p-2 rounded-lg text-muted hover:bg-primary-5"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <nav className="p-4 space-y-1">
+              <Link
+                href="/dashboard"
+                onClick={() => setMobileNavOpen(false)}
+                className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium ${
+                  pathname === '/dashboard' ? 'bg-secondary-10 text-secondary' : 'text-primary hover:bg-primary-5'
+                }`}
+              >
+                <LayoutDashboard className="w-5 h-5" />
+                Dashboard
+              </Link>
+              <div className="pt-2">
+                <p className="px-4 text-xs font-semibold text-muted uppercase tracking-wider mb-1">Companies</p>
+                <Link href="/clients" onClick={() => setMobileNavOpen(false)} className="flex items-center gap-3 px-4 py-3 rounded-lg text-sm text-primary hover:bg-primary-5">
+                  <Building2 className="w-5 h-5" /> All Companies
+                </Link>
+                <Link href="/people" onClick={() => setMobileNavOpen(false)} className="flex items-center gap-3 px-4 py-3 rounded-lg text-sm text-primary hover:bg-primary-5">
+                  <Building2 className="w-5 h-5" /> People
+                </Link>
+              </div>
+              <div className="pt-2">
+                <p className="px-4 text-xs font-semibold text-muted uppercase tracking-wider mb-1">Updates</p>
+                <Link href="/updates" onClick={() => setMobileNavOpen(false)} className="flex items-center gap-3 px-4 py-3 rounded-lg text-sm text-primary hover:bg-primary-5">
+                  <Rss className="w-5 h-5" /> Updates
+                </Link>
+                <Link href="/syntheses" onClick={() => setMobileNavOpen(false)} className="flex items-center gap-3 px-4 py-3 rounded-lg text-sm text-primary hover:bg-primary-5">
+                  <Rss className="w-5 h-5" /> Syntheses
+                </Link>
+              </div>
+              <div className="pt-2">
+                <p className="px-4 text-xs font-semibold text-muted uppercase tracking-wider mb-1">Action</p>
+                <Link href="/tasks" onClick={() => setMobileNavOpen(false)} className="flex items-center gap-3 px-4 py-3 rounded-lg text-sm text-primary hover:bg-primary-5">
+                  <Zap className="w-5 h-5" /> Tasks
+                </Link>
+                <Link href="/programs" onClick={() => setMobileNavOpen(false)} className="flex items-center gap-3 px-4 py-3 rounded-lg text-sm text-primary hover:bg-primary-5">
+                  <Zap className="w-5 h-5" /> Programs
+                </Link>
+                <Link href="/library" onClick={() => setMobileNavOpen(false)} className="flex items-center gap-3 px-4 py-3 rounded-lg text-sm text-primary hover:bg-primary-5">
+                  <Zap className="w-5 h-5" /> Library
+                </Link>
+                <Link href="/forms" onClick={() => setMobileNavOpen(false)} className="flex items-center gap-3 px-4 py-3 rounded-lg text-sm text-primary hover:bg-primary-5">
+                  <Zap className="w-5 h-5" /> Forms
+                </Link>
+              </div>
+              <Link href="/messages" onClick={() => setMobileNavOpen(false)} className="flex items-center gap-3 px-4 py-3 rounded-lg text-sm text-primary hover:bg-primary-5 mt-2">
+                <MessageSquare className="w-5 h-5" /> Messages
+              </Link>
+            </nav>
+          </div>
+        </div>
+      )}
     </header>
   )
 }

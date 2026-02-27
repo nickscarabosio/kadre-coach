@@ -12,10 +12,12 @@ export async function createTask(data: {
   priority: string
   priority_level: number
   client_id?: string | null
+  project_id?: string | null
   section_id?: string | null
   parent_task_id?: string | null
   is_recurring?: boolean
   recurrence_rule?: string | null
+  assigned_to_coach_id?: string | null
 }) {
   const supabase = await createClient()
   const coachId = await getCoachId(supabase)
@@ -47,10 +49,12 @@ export async function createTask(data: {
     priority: data.priority,
     priority_level: data.priority_level,
     client_id: data.client_id || null,
+    project_id: data.project_id || null,
     section_id: data.section_id || null,
     parent_task_id: data.parent_task_id || null,
     is_recurring: data.is_recurring || false,
     recurrence_rule: data.recurrence_rule || null,
+    assigned_to_coach_id: data.assigned_to_coach_id || null,
     sort_order: (lastTask?.[0]?.sort_order ?? -1) + 1,
   })
 

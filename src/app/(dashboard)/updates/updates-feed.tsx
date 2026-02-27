@@ -2,10 +2,10 @@
 
 import { useState } from 'react'
 import { format } from 'date-fns'
-import { Mic, FileText, MessageSquare, Tag, Trash2, Pencil, X, Check } from 'lucide-react'
+import { Mic, FileText, MessageSquare, Tag, Trash2, Pencil, X, Check, Plus } from 'lucide-react'
 import type { TelegramUpdate } from '@/types/database'
 import { ExpandableText } from '@/components/ui/expandable-text'
-import { deleteUpdate, updateUpdateContent } from './actions'
+import { deleteUpdate, updateUpdateContent, logUpdate, type UpdateClassification } from './actions'
 
 interface UpdatesFeedProps {
   updates: TelegramUpdate[]
@@ -26,19 +26,46 @@ const typeIcons: Record<string, typeof MessageSquare> = {
   document: FileText,
 }
 
+const UPDATE_TYPES: { value: UpdateClassification; label: string }[] = [
+  { value: 'communication', label: 'Communication' },
+  { value: 'insight', label: 'Insight' },
+  { value: 'admin', label: 'Admin' },
+  { value: 'progress', label: 'Progress' },
+  { value: 'blocker', label: 'Blocker' },
+]
+
 export function UpdatesFeed({ updates: initialUpdates, clients }: UpdatesFeedProps) {
   const [updates, setUpdates] = useState(initialUpdates)
   const [filterClient, setFilterClient] = useState<string>('all')
   const [filterType, setFilterType] = useState<string>('all')
+  const [keyword, setKeyword] = useState('')
+  const [dateFrom, setDateFrom] = useState('')
+  const [dateTo, setDateTo] = useState('')
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editContent, setEditContent] = useState('')
   const [expandedContentId, setExpandedContentId] = useState<string | null>(null)
+  const [showLogModal, setShowLogModal] = useState(false)
+  const [logLoading, setLogLoading] = useState(false)
+  const [logError, setLogError] = useState<string | null>(null)
 
   const clientMap = Object.fromEntries(clients.map(c => [c.id, c.company_name]))
 
   const filtered = updates.filter(u => {
     if (filterClient !== 'all' && u.client_id !== filterClient) return false
     if (filterType !== 'all' && u.message_type !== filterType) return false
+    if (keyword.trim()) {
+      const q = keyword.toLowerCase()
+      const text = ((u.content || '') + ' ' + (u.voice_transcript || '')).toLowerCase()
+      if (!text.includes(q)) return false
+    }
+    if (dateFrom) {
+      const d = format(new Date(u.created_at), 'yyyy-MM-dd')
+      if (d < dateFrom) return false
+    }
+    if (dateTo) {
+      const d = format(new Date(u.created_at), 'yyyy-MM-dd')
+      if (d > dateTo) return false
+    }
     return true
   })
 
@@ -90,10 +117,60 @@ export function UpdatesFeed({ updates: initialUpdates, clients }: UpdatesFeedPro
     return trimmed.slice(0, 200)
   }
 
+  const handleLogUpdate = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    setLogError(null)
+    setLogLoading(true)
+    const form = e.currentTarget
+    const formData = new FormData(form)
+    const res = await logUpdate({
+      client_id: formData.get('client_id') as string,
+      content: formData.get('content') as string,
+      classification: formData.get('classification') as UpdateClassification,
+    })
+    setLogLoading(false)
+    if (res?.error) {
+      setLogError(res.error)
+      return
+    }
+    setShowLogModal(false)
+    form.reset()
+    window.location.reload()
+  }
+
   return (
     <div>
-      {/* Filters */}
-      <div className="flex gap-3 mb-6">
+      {/* Log Update + Filters */}
+      <div className="flex flex-wrap items-center gap-3 mb-6">
+        <button
+          type="button"
+          onClick={() => setShowLogModal(true)}
+          className="flex items-center gap-2 px-4 py-2 rounded-lg bg-secondary text-white text-sm font-medium hover:bg-secondary/90"
+        >
+          <Plus className="w-4 h-4" />
+          Log Update
+        </button>
+        <input
+          type="text"
+          placeholder="Search by keyword..."
+          value={keyword}
+          onChange={(e) => setKeyword(e.target.value)}
+          className="px-3 py-2 bg-surface border border-border-strong rounded-lg text-sm text-primary placeholder-muted focus:outline-none focus:ring-2 focus:ring-secondary/40 min-w-[180px]"
+        />
+        <input
+          type="date"
+          value={dateFrom}
+          onChange={(e) => setDateFrom(e.target.value)}
+          className="px-3 py-2 bg-surface border border-border-strong rounded-lg text-sm text-primary focus:outline-none focus:ring-2 focus:ring-secondary/40"
+          title="From date"
+        />
+        <input
+          type="date"
+          value={dateTo}
+          onChange={(e) => setDateTo(e.target.value)}
+          className="px-3 py-2 bg-surface border border-border-strong rounded-lg text-sm text-primary focus:outline-none focus:ring-2 focus:ring-secondary/40"
+          title="To date"
+        />
         <select
           value={filterClient}
           onChange={(e) => setFilterClient(e.target.value)}
@@ -115,6 +192,49 @@ export function UpdatesFeed({ updates: initialUpdates, clients }: UpdatesFeedPro
           <option value="document">Document</option>
         </select>
       </div>
+
+      {/* Log Update Modal */}
+      {showLogModal && (
+        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-surface border border-border rounded-xl w-full max-w-md shadow-nav">
+            <div className="flex items-center justify-between p-4 border-b border-border">
+              <h3 className="text-lg font-semibold text-primary">Log Update</h3>
+              <button type="button" onClick={() => setShowLogModal(false)} className="p-2 rounded-lg text-muted hover:bg-primary-5">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <form onSubmit={handleLogUpdate} className="p-4 space-y-4">
+              {logError && <p className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-lg">{logError}</p>}
+              <div>
+                <label className="block text-sm font-medium text-primary mb-1">Company</label>
+                <select name="client_id" required className="w-full px-3 py-2 bg-surface border border-border rounded-lg text-primary">
+                  <option value="">Select company</option>
+                  {clients.map((c) => (
+                    <option key={c.id} value={c.id}>{c.company_name}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-primary mb-1">Type</label>
+                <select name="classification" required className="w-full px-3 py-2 bg-surface border border-border rounded-lg text-primary">
+                  {UPDATE_TYPES.map((t) => (
+                    <option key={t.value} value={t.value}>{t.label}</option>
+                  ))}
+                </select>
+                <p className="text-xs text-muted mt-1">Communication, Insight, Admin, Progress, Blocker</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-primary mb-1">Update</label>
+                <textarea name="content" required rows={4} placeholder="What happened?" className="w-full px-3 py-2 bg-surface border border-border rounded-lg text-primary placeholder-muted resize-none" />
+              </div>
+              <div className="flex justify-end gap-2">
+                <button type="button" onClick={() => setShowLogModal(false)} className="px-4 py-2 rounded-lg border border-border text-primary hover:bg-primary-5">Cancel</button>
+                <button type="submit" disabled={logLoading} className="px-4 py-2 rounded-lg bg-secondary text-white hover:bg-secondary/90 disabled:opacity-50">{logLoading ? 'Saving…' : 'Save'}</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Feed */}
       <div className="space-y-8">

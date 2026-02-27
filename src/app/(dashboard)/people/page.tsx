@@ -13,6 +13,7 @@ export default function PeoplePage() {
   const [contacts, setContacts] = useState<ContactWithCompany[]>([])
   const [clients, setClients] = useState<Pick<Client, 'id' | 'company_name'>[]>([])
   const [search, setSearch] = useState('')
+  const [companyFilter, setCompanyFilter] = useState<string>('all')
   const [loading, setLoading] = useState(true)
   const [showAdd, setShowAdd] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -74,6 +75,7 @@ export default function PeoplePage() {
   }
 
   const filtered = contacts.filter((c) => {
+    if (companyFilter !== 'all' && c.client_id !== companyFilter) return false
     const q = search.toLowerCase()
     return (
       c.name.toLowerCase().includes(q) ||
@@ -99,15 +101,27 @@ export default function PeoplePage() {
         </button>
       </div>
 
-      <div className="relative mb-6">
-        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted" />
-        <input
-          type="text"
-          placeholder="Search people..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="w-full pl-12 pr-4 py-2.5 bg-surface border border-border-strong rounded-lg text-primary placeholder-muted focus:outline-none focus:ring-2 focus:ring-secondary/40 focus:border-secondary"
-        />
+      <div className="flex flex-wrap items-center gap-3 mb-6">
+        <div className="relative flex-1 min-w-[200px]">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted" />
+          <input
+            type="text"
+            placeholder="Search by name, company, email, role..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full pl-12 pr-4 py-2.5 bg-surface border border-border-strong rounded-lg text-primary placeholder-muted focus:outline-none focus:ring-2 focus:ring-secondary/40 focus:border-secondary"
+          />
+        </div>
+        <select
+          value={companyFilter}
+          onChange={(e) => setCompanyFilter(e.target.value)}
+          className="px-3 py-2.5 bg-surface border border-border rounded-lg text-sm text-primary"
+        >
+          <option value="all">All companies</option>
+          {clients.map((c) => (
+            <option key={c.id} value={c.id}>{c.company_name}</option>
+          ))}
+        </select>
       </div>
 
       {loading ? (

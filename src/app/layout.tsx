@@ -8,7 +8,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Kadre Coach",
+  title: "Kadre",
   description: "The coaching platform where programs forge real results",
 };
 

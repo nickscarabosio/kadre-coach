@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Reflection, SessionNote, Message, TelegramUpdate, CoachCheckIn } from '@/types/database'
 import { format } from 'date-fns'
 import { Send, Mic, FileText, MessageSquare as MsgIcon, Plus, X, Phone, Mail, Video, MapPin, MoreHorizontal } from 'lucide-react'
@@ -33,6 +33,27 @@ export function ClientTabs({ clientId, reflections, sessionNotes, messages, upda
   const [showNoteModal, setShowNoteModal] = useState(false)
   const [modalLoading, setModalLoading] = useState(false)
   const router = useRouter()
+
+  const hashToTab: Record<string, 'updates' | 'reflections' | 'notes' | 'messages'> = {
+    'section-updates': 'updates',
+    'section-check-ins': 'reflections',
+    'section-notes': 'notes',
+    'section-messages': 'messages',
+  }
+  useEffect(() => {
+    const hash = typeof window !== 'undefined' ? window.location.hash.slice(1) : ''
+    const tab = hash ? hashToTab[hash] : null
+    if (tab) setActiveTab(tab)
+  }, [])
+  useEffect(() => {
+    const onHashChange = () => {
+      const hash = window.location.hash.slice(1)
+      const tab = hash ? hashToTab[hash] : null
+      if (tab) setActiveTab(tab)
+    }
+    window.addEventListener('hashchange', onHashChange)
+    return () => window.removeEventListener('hashchange', onHashChange)
+  }, [])
 
   const tabs = [
     { id: 'updates' as const, name: 'Updates', count: updates.length },
@@ -92,8 +113,8 @@ export function ClientTabs({ clientId, reflections, sessionNotes, messages, upda
 
   return (
     <>
-      <div className="bg-surface border border-border rounded-xl shadow-card">
-        <div className="flex border-b border-border">
+      <div id="client-tabs" className="bg-surface border border-border rounded-xl shadow-card scroll-mt-4">
+        <div className="flex border-b border-border sticky top-16 z-10 bg-surface rounded-t-xl">
           {tabs.map((tab) => (
             <button
               key={tab.id}
@@ -117,7 +138,7 @@ export function ClientTabs({ clientId, reflections, sessionNotes, messages, upda
 
         <div className="p-6">
           {activeTab === 'updates' && (
-            <div className="space-y-3">
+            <div id="section-updates" className="space-y-3">
               {updates.length > 0 ? (
                 updates.map((update) => {
                   const TypeIcon = update.message_type === 'voice' ? Mic : update.message_type === 'document' ? FileText : MsgIcon
@@ -155,7 +176,7 @@ export function ClientTabs({ clientId, reflections, sessionNotes, messages, upda
           )}
 
           {activeTab === 'reflections' && (
-            <div>
+            <div id="section-check-ins">
               <div className="flex justify-end mb-4">
                 <button
                   onClick={() => setShowCheckInModal(true)}
@@ -229,7 +250,7 @@ export function ClientTabs({ clientId, reflections, sessionNotes, messages, upda
                           <div className="flex items-center gap-2 mb-2">
                             <Icon className="w-4 h-4 text-violet-600" />
                             <span className="text-xs font-medium text-violet-700 bg-violet-100 px-2 py-0.5 rounded-full">
-                              Coach {checkIn.check_in_type}
+                              Coach check-in
                             </span>
                             <span className="text-sm text-muted">
                               {format(new Date(checkIn.check_in_date + 'T12:00:00'), 'MMM d, yyyy')}
@@ -252,6 +273,7 @@ export function ClientTabs({ clientId, reflections, sessionNotes, messages, upda
           )}
 
           {activeTab === 'notes' && (
+            <div id="section-notes">
             <div>
               <div className="flex justify-end mb-4">
                 <button
@@ -280,10 +302,11 @@ export function ClientTabs({ clientId, reflections, sessionNotes, messages, upda
                 )}
               </div>
             </div>
+            </div>
           )}
 
           {activeTab === 'messages' && (
-            <div>
+            <div id="section-messages">
               <div className="space-y-4 mb-6 max-h-96 overflow-y-auto">
                 {messages.length > 0 ? (
                   messages.map((message) => (

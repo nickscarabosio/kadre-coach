@@ -32,6 +32,7 @@ type ConversationItem = {
   type: 'conversation'
   id: string
   subject: string
+  company_name: string | null
   lastMessage: string
   lastMessageAt: string
   unreadCount: number
@@ -76,6 +77,7 @@ export function MessageList({
       type: 'conversation',
       id: conv.id,
       subject: conv.subject || participantNames || (conv.client_id ? clientMap[conv.client_id] || 'Unknown' : 'Conversation'),
+      company_name: conv.client_id ? clientMap[conv.client_id] || null : null,
       lastMessage: lastMsg?.content || '',
       lastMessageAt: lastMsg?.created_at || conv.created_at,
       unreadCount: unread,
@@ -123,13 +125,14 @@ export function MessageList({
   }
 
   return (
-    <div className="flex bg-surface border border-border rounded-xl shadow-card overflow-hidden" style={{ height: 'calc(100vh - 200px)' }}>
-      {/* Conversation list */}
-      <div className="w-80 border-r border-border overflow-y-auto">
-        {items.map((item, i) => {
+    <div className="flex flex-col md:flex-row bg-surface border border-border rounded-xl shadow-card overflow-hidden" style={{ minHeight: '400px', height: 'calc(100vh - 200px)' }}>
+      {/* Conversation list - left on desktop, top on mobile */}
+      <div className="w-full md:w-80 border-b md:border-b-0 md:border-r border-border overflow-y-auto shrink-0">
+        {items.map((item) => {
           const isSelected = selectedItem &&
             (item.type === 'conversation' && selectedItem.type === 'conversation' && item.id === selectedItem.id) ||
             (item.type === 'legacy' && selectedItem?.type === 'legacy' && (item as { clientId: string }).clientId === (selectedItem as { clientId: string }).clientId)
+          const companyName = item.type === 'conversation' ? item.company_name : (item as { company_name: string }).company_name
 
           return (
             <button
@@ -149,6 +152,9 @@ export function MessageList({
                   </span>
                 )}
               </div>
+              {companyName && (
+                <p className="text-[10px] text-muted mt-0.5 font-medium">{companyName}</p>
+              )}
               <p className="text-xs text-muted truncate mt-0.5">{item.lastMessage}</p>
               {item.lastMessageAt && (
                 <p className="text-[10px] text-muted mt-0.5">

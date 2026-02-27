@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import { Plus, X, Trash2, GripVertical } from 'lucide-react'
 import type { ClientProject } from '@/types/database'
 import { createProject, updateProject, deleteProject } from './project-actions'
@@ -11,8 +12,9 @@ interface ProjectBoardProps {
 }
 
 const columns = [
-  { status: 'active', label: 'Active', color: 'border-secondary' },
-  { status: 'on_hold', label: 'On Hold', color: 'border-amber-400' },
+  { status: 'idea', label: 'Idea', color: 'border-primary-20' },
+  { status: 'planning', label: 'Planning', color: 'border-amber-400' },
+  { status: 'active', label: 'In Progress', color: 'border-secondary' },
   { status: 'completed', label: 'Completed', color: 'border-emerald-500' },
 ]
 
@@ -61,9 +63,11 @@ export function ProjectBoard({ clientId, projects: initialProjects }: ProjectBoa
 
   return (
     <>
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {columns.map(col => {
-          const colProjects = projects.filter(p => p.status === col.status)
+          const colProjects = projects.filter(p =>
+            col.status === 'planning' ? (p.status === 'planning' || p.status === 'on_hold') : p.status === col.status
+          )
           return (
             <div key={col.status} className={`border-t-2 ${col.color} bg-primary-5 rounded-lg p-3`}>
               <div className="flex items-center justify-between mb-3">
@@ -79,11 +83,14 @@ export function ProjectBoard({ clientId, projects: initialProjects }: ProjectBoa
                     <div className="flex items-start gap-2">
                       <GripVertical className="w-4 h-4 text-muted shrink-0 mt-0.5 opacity-0 group-hover:opacity-100" />
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-primary">{project.title}</p>
+                        <Link href={`/clients/${clientId}/projects/${project.id}`} className="block">
+                          <p className="text-sm font-medium text-primary hover:text-secondary">{project.title}</p>
+                        </Link>
                         {project.description && (
                           <p className="text-xs text-muted mt-1 line-clamp-2">{project.description}</p>
                         )}
                       </div>
+                    </div>
                       <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                         <select
                           value={project.status}
@@ -101,7 +108,6 @@ export function ProjectBoard({ clientId, projects: initialProjects }: ProjectBoa
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
                       </div>
-                    </div>
                   </div>
                 ))}
               </div>

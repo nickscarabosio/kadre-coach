@@ -2,12 +2,12 @@
 
 import { useState } from 'react'
 import { Plus, X, Flag } from 'lucide-react'
-import { Client, TaskSection, TaskLabel } from '@/types/database'
+import { Client, TaskSection, TaskLabel, ClientProject } from '@/types/database'
 import { createTask } from './actions'
-
 
 interface AddTaskButtonProps {
   clients: Client[]
+  projects?: ClientProject[]
   sections: TaskSection[]
   labels: TaskLabel[]
   onTaskCreated?: () => void
@@ -20,12 +20,13 @@ const priorities = [
   { level: 4, label: 'P4', color: 'text-gray-400' },
 ]
 
-export function AddTaskButton({ clients, sections, onTaskCreated }: AddTaskButtonProps) {
+export function AddTaskButton({ clients, projects = [], sections, onTaskCreated }: AddTaskButtonProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [priorityLevel, setPriorityLevel] = useState(4)
   const [isRecurring, setIsRecurring] = useState(false)
+  const [selectedClientId, setSelectedClientId] = useState('')
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -43,6 +44,7 @@ export function AddTaskButton({ clients, sections, onTaskCreated }: AddTaskButto
       priority: priorityMap[priorityLevel] || 'medium',
       priority_level: priorityLevel,
       client_id: formData.get('client_id') as string || null,
+      project_id: formData.get('project_id') as string || null,
       section_id: formData.get('section_id') as string || null,
       is_recurring: isRecurring,
       recurrence_rule: isRecurring ? formData.get('recurrence_rule') as string || 'daily' : null,
@@ -169,6 +171,7 @@ export function AddTaskButton({ clients, sections, onTaskCreated }: AddTaskButto
                   <select
                     name="client_id"
                     defaultValue=""
+                    onChange={(e) => setSelectedClientId(e.target.value)}
                     className="w-full px-4 py-2.5 bg-surface border border-border-strong rounded-lg text-primary focus:outline-none focus:ring-2 focus:ring-secondary/40 focus:border-secondary"
                   >
                     <option value="">No company</option>
@@ -177,6 +180,20 @@ export function AddTaskButton({ clients, sections, onTaskCreated }: AddTaskButto
                     ))}
                   </select>
                 </div>
+                {projects.length > 0 && (
+                  <div className="col-span-2">
+                    <label className="block text-sm font-medium text-primary mb-1.5">Project</label>
+                    <select
+                      name="project_id"
+                      className="w-full px-4 py-2.5 bg-surface border border-border-strong rounded-lg text-primary focus:outline-none focus:ring-2 focus:ring-secondary/40 focus:border-secondary"
+                    >
+                      <option value="">No project</option>
+                      {projects.filter(p => p.client_id === selectedClientId).map(p => (
+                        <option key={p.id} value={p.id}>{p.title}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
               </div>
 
               {/* Recurring */}

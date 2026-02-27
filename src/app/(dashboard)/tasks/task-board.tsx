@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { Task, Client, TaskSection, TaskLabel } from '@/types/database'
+import { Task, Client, TaskSection, TaskLabel, ClientProject } from '@/types/database'
 import { format, isAfter, isBefore, isToday, addDays } from 'date-fns'
 import {
   Circle,
@@ -30,6 +30,7 @@ const priorityColors: Record<number, string> = {
 export function TaskBoard() {
   const [tasks, setTasks] = useState<Task[]>([])
   const [clients, setClients] = useState<Client[]>([])
+  const [projects, setProjects] = useState<ClientProject[]>([])
   const [sections, setSections] = useState<TaskSection[]>([])
   const [labels, setLabels] = useState<TaskLabel[]>([])
   const [labelAssignments, setLabelAssignments] = useState<{ task_id: string; label_id: string }[]>([])
@@ -51,9 +52,10 @@ export function TaskBoard() {
     const { data: coach } = await supabase.from('coaches').select('parent_coach_id').eq('id', user.id).single()
     const coachId = coach?.parent_coach_id || user.id
 
-    const [tasksRes, clientsRes, sectionsRes, labelsRes, assignmentsRes] = await Promise.all([
+    const [tasksRes, clientsRes, projectsRes, sectionsRes, labelsRes, assignmentsRes] = await Promise.all([
       supabase.from('tasks').select('*').eq('coach_id', coachId).order('sort_order').order('created_at', { ascending: false }),
       supabase.from('clients').select('*').eq('coach_id', coachId),
+      supabase.from('client_projects').select('*').eq('coach_id', coachId).order('sort_order'),
       supabase.from('task_sections').select('*').eq('coach_id', coachId).order('sort_order'),
       supabase.from('task_labels').select('*').eq('coach_id', coachId).order('name'),
       supabase.from('task_label_assignments').select('task_id, label_id'),
@@ -61,6 +63,7 @@ export function TaskBoard() {
 
     setTasks(tasksRes.data || [])
     setClients(clientsRes.data || [])
+    setProjects(projectsRes.data || [])
     setSections(sectionsRes.data || [])
     setLabels(labelsRes.data || [])
     setLabelAssignments(assignmentsRes.data || [])
@@ -88,7 +91,6 @@ export function TaskBoard() {
     .filter(t => !t.parent_task_id)
     .filter(t => {
       if (selectedSection === null) return true
-      if (selectedSection === 'inbox') return !t.section_id
       return t.section_id === selectedSection
     })
     .filter(t => {
@@ -162,7 +164,7 @@ export function TaskBoard() {
       title: quickAddTitle,
       priority: 'medium',
       priority_level: 4,
-      section_id: selectedSection === 'inbox' ? null : selectedSection,
+      section_id: selectedSection || null,
     })
     setQuickAddTitle('')
     setAddingTask(false)
@@ -219,7 +221,7 @@ export function TaskBoard() {
         </div>
         <div className="flex items-center gap-3">
           <SectionManager onCreated={handleSectionCreated} />
-          <AddTaskButton clients={clients} sections={sections} labels={labels} onTaskCreated={handleTaskCreated} />
+          <AddTaskButton clients={clients} projects={projects} sections={sections} labels={labels} onTaskCreated={handleTaskCreated} />
         </div>
       </div>
 
@@ -227,7 +229,7 @@ export function TaskBoard() {
         <div className="text-center py-12 bg-surface border border-border rounded-xl shadow-card">
           <h3 className="text-primary font-semibold mb-2">No tasks yet</h3>
           <p className="text-muted mb-4">Create your first task to stay organized</p>
-          <AddTaskButton clients={clients} sections={sections} labels={labels} onTaskCreated={handleTaskCreated} />
+          <AddTaskButton clients={clients} projects={projects} sections={sections} labels={labels} onTaskCreated={handleTaskCreated} />
         </div>
       ) : (
         <div className="flex gap-6">
@@ -241,14 +243,6 @@ export function TaskBoard() {
                 }`}
               >
                 All Tasks
-              </button>
-              <button
-                onClick={() => setSelectedSection('inbox')}
-                className={`w-full text-left px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  selectedSection === 'inbox' ? 'bg-secondary-10 text-secondary' : 'text-muted hover:bg-primary-5 hover:text-primary'
-                }`}
-              >
-                Inbox
               </button>
               {sections.map(s => (
                 <button
@@ -314,11 +308,19 @@ export function TaskBoard() {
 
                       <button
                         onClick={() => handleInlinePriorityCycle(task)}
-                        className="shrink-0"
-                        title={`Priority ${task.priority_level} — click to change`}
+                        className="shrink-0 flex items-center gap-1"
+                        title={`Priority — click to change`}
                       >
                         <Flag className={`w-4 h-4 ${priorityColors[task.priority_level] || priorityColors[4]}`} />
+                        <span className="text-xs text-muted hidden sm:inline">
+                          {task.priority_level <= 2 ? 'High' : task.priority_level === 3 ? 'Medium' : 'Low'}
+                        </span>
                       </button>
+                      {task.is_recurring && (
+                        <span className="shrink-0 text-[10px] font-medium px-1.5 py-0.5 rounded bg-primary-5 text-muted" title="Recurring task">
+                          Recurring
+                        </span>
+                      )}
 
                       <div
                         className="flex-1 min-w-0 cursor-pointer"
@@ -427,6 +429,7 @@ export function TaskBoard() {
         <TaskDetailPanel
           task={detailTask}
           clients={clients}
+          projects={projects}
           sections={sections}
           labels={labels}
           taskLabelIds={labelAssignments.filter(a => a.task_id === detailTask.id).map(a => a.label_id)}

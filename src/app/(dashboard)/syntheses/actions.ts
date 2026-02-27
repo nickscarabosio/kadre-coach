@@ -40,7 +40,11 @@ export async function sendSynthesisByEmail(synthesisId: string) {
       dateFormatted
     )
   } catch (err) {
-    return { error: err instanceof Error ? err.message : 'Failed to send email' }
+    const raw = err instanceof Error ? err.message : String(err)
+    if (/529|unavailable|timeout|api/i.test(raw)) {
+      return { error: 'Synthesis unavailable for this date. Please try regenerating.' }
+    }
+    return { error: raw || 'Failed to send email' }
   }
 
   await supabase

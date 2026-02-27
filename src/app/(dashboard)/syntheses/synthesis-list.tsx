@@ -15,31 +15,58 @@ interface SynthesisListProps {
 export function SynthesisList({ syntheses }: SynthesisListProps) {
   const [expandedId, setExpandedId] = useState<string | null>(syntheses[0]?.id || null)
   const [search, setSearch] = useState('')
+  const [dateFrom, setDateFrom] = useState('')
+  const [dateTo, setDateTo] = useState('')
   const [sendingId, setSendingId] = useState<string | null>(null)
   const [sentIds, setSentIds] = useState<Set<string>>(
     () => new Set(syntheses.filter(s => s.sent_email).map(s => s.id))
   )
 
   const filtered = useMemo(() => {
-    if (!search.trim()) return syntheses
-    const q = search.toLowerCase().trim()
-    return syntheses.filter((s) => {
-      const dateStr = format(new Date(s.synthesis_date + 'T12:00:00'), 'yyyy-MM-dd EEEE MMMM')
-      const content = (s.summary || s.content || '').toLowerCase()
-      return dateStr.toLowerCase().includes(q) || content.includes(q)
-    })
-  }, [syntheses, search])
+    let list = syntheses
+    if (search.trim()) {
+      const q = search.toLowerCase().trim()
+      list = list.filter((s) => {
+        const dateStr = format(new Date(s.synthesis_date + 'T12:00:00'), 'yyyy-MM-dd EEEE MMMM')
+        const content = (s.summary || s.content || '').toLowerCase()
+        return dateStr.toLowerCase().includes(q) || content.includes(q)
+      })
+    }
+    if (dateFrom) {
+      list = list.filter((s) => s.synthesis_date >= dateFrom)
+    }
+    if (dateTo) {
+      list = list.filter((s) => s.synthesis_date <= dateTo)
+    }
+    return list
+  }, [syntheses, search, dateFrom, dateTo])
 
   return (
     <div className="space-y-4">
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="relative flex-1 min-w-[200px]">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
+          <input
+            type="text"
+            placeholder="Search syntheses by date or content..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full pl-10 pr-4 py-2.5 bg-surface border border-border rounded-lg text-sm text-primary placeholder-muted focus:outline-none focus:ring-2 focus:ring-secondary/40"
+          />
+        </div>
         <input
-          type="text"
-          placeholder="Search syntheses by date or content..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="w-full pl-10 pr-4 py-2.5 bg-surface border border-border rounded-lg text-sm text-primary placeholder-muted focus:outline-none focus:ring-2 focus:ring-secondary/40"
+          type="date"
+          value={dateFrom}
+          onChange={(e) => setDateFrom(e.target.value)}
+          className="px-3 py-2.5 bg-surface border border-border rounded-lg text-sm text-primary focus:outline-none focus:ring-2 focus:ring-secondary/40"
+          title="From date"
+        />
+        <input
+          type="date"
+          value={dateTo}
+          onChange={(e) => setDateTo(e.target.value)}
+          className="px-3 py-2.5 bg-surface border border-border rounded-lg text-sm text-primary focus:outline-none focus:ring-2 focus:ring-secondary/40"
+          title="To date"
         />
       </div>
       <div className="space-y-3">
@@ -113,11 +140,15 @@ export function SynthesisList({ syntheses }: SynthesisListProps) {
 
             {isExpanded && (
               <div className="px-4 pb-4 border-t border-border">
-                <div className="pt-4 prose prose-sm max-w-none prose-headings:text-primary prose-p:text-primary/80 prose-li:text-primary/80 prose-strong:text-primary">
-                  <ReactMarkdown>
-                    {cleanMarkdownForDisplay(synthesis.content)}
-                  </ReactMarkdown>
-                </div>
+                {synthesis.content ? (
+                  <div className="pt-4 prose prose-sm max-w-none prose-headings:text-primary prose-p:text-primary/80 prose-li:text-primary/80 prose-strong:text-primary">
+                    <ReactMarkdown>
+                      {cleanMarkdownForDisplay(synthesis.content)}
+                    </ReactMarkdown>
+                  </div>
+                ) : (
+                  <p className="pt-4 text-muted text-sm">Synthesis unavailable for this date. Please try regenerating.</p>
+                )}
               </div>
             )}
           </div>
