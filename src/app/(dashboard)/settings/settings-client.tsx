@@ -5,6 +5,7 @@ import { User, Bell, MessageSquare, FileText, Users } from 'lucide-react'
 import { ProfileForm } from './profile-form'
 import { NotificationSettings } from './notification-settings'
 import { TelegramConnect } from './telegram-connect'
+import { TodoistConnect } from './todoist-connect'
 import { MessageSnippets } from './message-snippets'
 import { TeamManagement } from './team-management'
 import type { Coach, CoachMessageSnippet, NotificationPreferences } from '@/types/database'
@@ -108,6 +109,13 @@ export function SettingsClient({ coach, prefs, snippets }: SettingsClientProps) 
                 <TelegramConnect
                   isConnected={!!coach.telegram_chat_id}
                   username={coach.telegram_username}
+                />
+              </div>
+              <div className="bg-surface border border-border rounded-xl p-6 shadow-card">
+                <h2 className="text-lg font-semibold text-primary mb-4">Todoist</h2>
+                <TodoistConnect
+                  isConnected={!!coach.todoist_api_token}
+                  syncEnabled={coach.todoist_sync_enabled}
                 />
               </div>
             </div>

@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { getCoachId } from '@/lib/supabase/get-coach-id'
 import { revalidatePath } from 'next/cache'
+import { pushTask, pushTaskStatus, pushTaskDelete } from '@/lib/todoist/sync'
 
 export async function createTask(data: {
   title: string
@@ -41,7 +42,7 @@ export async function createTask(data: {
 
   const { data: lastTask } = await query
 
-  const { error } = await supabase.from('tasks').insert({
+  const { data: inserted, error } = await supabase.from('tasks').insert({
     coach_id: coachId,
     title: data.title,
     description: data.description || null,
@@ -58,9 +59,14 @@ export async function createTask(data: {
     recurrence_rule: data.recurrence_rule || null,
     assigned_to_coach_id: data.assigned_to_coach_id || null,
     sort_order: (lastTask?.[0]?.sort_order ?? -1) + 1,
-  })
+  }).select('id').single()
 
   if (error) return { error: error.message }
+
+  // Push to Todoist in background (non-blocking)
+  if (inserted) {
+    pushTask(supabase, coachId, inserted.id).catch(() => {})
+  }
 
   revalidatePath('/dashboard')
   return { success: true }
@@ -78,6 +84,9 @@ export async function updateTask(taskId: string, data: Record<string, unknown>) 
     .eq('coach_id', coachId)
 
   if (error) return { error: error.message }
+
+  // Push to Todoist in background (non-blocking)
+  pushTask(supabase, coachId, taskId).catch(() => {})
 
   revalidatePath('/dashboard')
   return { success: true }
@@ -103,6 +112,9 @@ export async function updateTaskStatus(taskId: string, status: string) {
 
   if (error) return { error: error.message }
 
+  // Sync status to Todoist in background (non-blocking)
+  pushTaskStatus(supabase, coachId, taskId, status).catch(() => {})
+
   revalidatePath('/dashboard')
   return { success: true }
 }
@@ -113,12 +125,24 @@ export async function deleteTask(taskId: string) {
 
   if (!coachId) return { error: 'Not authenticated' }
 
+  // Get todoist_id before deleting so we can remove from Todoist too
+  const { data: task } = await supabase.from('tasks')
+    .select('todoist_id')
+    .eq('id', taskId)
+    .eq('coach_id', coachId)
+    .single()
+
   const { error } = await supabase.from('tasks')
     .delete()
     .eq('id', taskId)
     .eq('coach_id', coachId)
 
   if (error) return { error: error.message }
+
+  // Delete from Todoist in background (non-blocking)
+  if (task?.todoist_id) {
+    pushTaskDelete(supabase, coachId, task.todoist_id).catch(() => {})
+  }
 
   revalidatePath('/dashboard')
   return { success: true }
