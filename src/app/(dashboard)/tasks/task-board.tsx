@@ -11,6 +11,8 @@ import {
   ChevronRight,
   Trash2,
   Plus,
+  List,
+  Columns3,
 } from 'lucide-react'
 import { updateTaskStatus, deleteTask, createTask, completeRecurringTask, updateTask } from './actions'
 import { createClient } from '@/lib/supabase/client'
@@ -18,8 +20,10 @@ import { toast } from 'sonner'
 import { AddTaskButton } from './add-task-button'
 import { SectionManager } from './section-manager'
 import { TaskDetailPanel } from './task-detail-panel'
+import { TaskKanban } from './task-kanban'
 
 type FilterMode = 'all' | 'today' | 'overdue' | 'upcoming' | 'completed'
+type ViewMode = 'list' | 'kanban'
 
 const priorityColors: Record<number, string> = {
   1: 'text-red-500',
@@ -45,6 +49,7 @@ export function TaskBoard() {
   const [quickAddTitle, setQuickAddTitle] = useState('')
   const [addingTask, setAddingTask] = useState(false)
   const [detailTask, setDetailTask] = useState<Task | null>(null)
+  const [viewMode, setViewMode] = useState<ViewMode>('list')
 
   const fetchData = useCallback(async () => {
     const supabase = createClient()
@@ -108,7 +113,7 @@ export function TaskBoard() {
       return t.title.toLowerCase().includes(search.toLowerCase())
     })
 
-  if (filter !== 'completed') {
+  if (filter !== 'completed' && !(viewMode === 'kanban' && filter === 'all')) {
     filtered = filtered.filter(t => t.status !== 'completed')
   }
 
@@ -152,6 +157,17 @@ export function TaskBoard() {
   const handleInlineDateChange = async (task: Task, date: string) => {
     handleUpdate(task.id, { due_date: date || null })
     await updateTask(task.id, { due_date: date || null })
+  }
+
+  const handleKanbanStatusChange = async (taskId: string, newStatus: string) => {
+    setTasks(prev =>
+      prev.map(t =>
+        t.id === taskId
+          ? { ...t, status: newStatus, completed_at: newStatus === 'completed' ? new Date().toISOString() : null }
+          : t
+      )
+    )
+    await updateTaskStatus(taskId, newStatus)
   }
 
   const toggleExpand = (taskId: string) => {
@@ -404,6 +420,26 @@ export function TaskBoard() {
                   </button>
                 ))}
               </div>
+              <div className="flex items-center gap-1 bg-surface border border-border rounded-lg p-1">
+                <button
+                  onClick={() => setViewMode('list')}
+                  title="List view"
+                  className={`p-1.5 rounded-md transition-colors ${
+                    viewMode === 'list' ? 'bg-secondary text-white' : 'text-muted hover:text-primary'
+                  }`}
+                >
+                  <List className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => setViewMode('kanban')}
+                  title="Kanban view"
+                  className={`p-1.5 rounded-md transition-colors ${
+                    viewMode === 'kanban' ? 'bg-secondary text-white' : 'text-muted hover:text-primary'
+                  }`}
+                >
+                  <Columns3 className="w-4 h-4" />
+                </button>
+              </div>
               <input
                 type="text"
                 placeholder="Search tasks..."
@@ -413,130 +449,143 @@ export function TaskBoard() {
               />
             </div>
 
-            <div className="space-y-1">
-              {filtered.map((task) => {
-                const client = task.client_id ? clientMap[task.client_id] : null
-                const tLabels = taskLabels(task.id)
-                const overdue = task.due_date && isAfter(now, new Date(task.due_date + 'T23:59:59')) && task.status !== 'completed'
-                const isExpanded = expandedTasks.has(task.id)
-                const subs = subtasksForTask(task.id)
-                const subCount = subtaskCounts[task.id]
+            {viewMode === 'kanban' ? (
+              <TaskKanban
+                tasks={filtered}
+                clients={clients}
+                labels={labels}
+                labelAssignments={labelAssignments}
+                onStatusChange={handleKanbanStatusChange}
+                onTaskClick={(task) => setDetailTask(task)}
+              />
+            ) : (
+              <>
+                <div className="space-y-1">
+                  {filtered.map((task) => {
+                    const client = task.client_id ? clientMap[task.client_id] : null
+                    const tLabels = taskLabels(task.id)
+                    const overdue = task.due_date && isAfter(now, new Date(task.due_date + 'T23:59:59')) && task.status !== 'completed'
+                    const isExpanded = expandedTasks.has(task.id)
+                    const subs = subtasksForTask(task.id)
+                    const subCount = subtaskCounts[task.id]
 
-                return (
-                  <div key={task.id} className="bg-surface border border-border rounded-lg shadow-subtle">
-                    <div className="flex items-center gap-3 px-4 py-3">
-                      <button
-                        onClick={() => handleStatusToggle(task)}
-                        className="shrink-0"
-                      >
-                        {task.status === 'completed' ? (
-                          <CheckCircle2 className="w-5 h-5 text-emerald-600" />
-                        ) : (
-                          <Circle className="w-5 h-5 text-muted hover:text-emerald-600 transition-colors" />
-                        )}
-                      </button>
+                    return (
+                      <div key={task.id} className="bg-surface border border-border rounded-lg shadow-subtle">
+                        <div className="flex items-center gap-3 px-4 py-3">
+                          <button
+                            onClick={() => handleStatusToggle(task)}
+                            className="shrink-0"
+                          >
+                            {task.status === 'completed' ? (
+                              <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+                            ) : (
+                              <Circle className="w-5 h-5 text-muted hover:text-emerald-600 transition-colors" />
+                            )}
+                          </button>
 
-                      <button
-                        onClick={() => handleInlinePriorityCycle(task)}
-                        className="shrink-0 flex items-center gap-1"
-                        title={`Priority — click to change`}
-                      >
-                        <Flag className={`w-4 h-4 ${priorityColors[task.priority_level] || priorityColors[4]}`} />
-                        <span className="text-xs text-muted hidden sm:inline">
-                          {task.priority_level <= 2 ? 'High' : task.priority_level === 3 ? 'Medium' : 'Low'}
-                        </span>
-                      </button>
-                      {task.is_recurring && (
-                        <span className="shrink-0 text-[10px] font-medium px-1.5 py-0.5 rounded bg-primary-5 text-muted" title="Recurring task">
-                          Recurring
-                        </span>
-                      )}
-
-                      <div
-                        className="flex-1 min-w-0 cursor-pointer"
-                        onClick={() => setDetailTask(task)}
-                      >
-                        <p className={`text-sm font-medium ${task.status === 'completed' ? 'text-muted line-through' : 'text-primary'}`}>
-                          {task.title}
-                        </p>
-                        <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                          {tLabels.map(l => (
-                            <span
-                              key={l.id}
-                              className="text-[10px] font-medium px-1.5 py-0.5 rounded-full"
-                              style={{ backgroundColor: l.color + '20', color: l.color }}
-                            >
-                              {l.name}
+                          <button
+                            onClick={() => handleInlinePriorityCycle(task)}
+                            className="shrink-0 flex items-center gap-1"
+                            title={`Priority — click to change`}
+                          >
+                            <Flag className={`w-4 h-4 ${priorityColors[task.priority_level] || priorityColors[4]}`} />
+                            <span className="text-xs text-muted hidden sm:inline">
+                              {task.priority_level <= 2 ? 'High' : task.priority_level === 3 ? 'Medium' : 'Low'}
                             </span>
-                          ))}
-                          {client && (
-                            <span className="text-xs text-muted">{client.company_name || client.name}</span>
+                          </button>
+                          {task.is_recurring && (
+                            <span className="shrink-0 text-[10px] font-medium px-1.5 py-0.5 rounded bg-primary-5 text-muted" title="Recurring task">
+                              Recurring
+                            </span>
                           )}
-                          {subCount && (
-                            <span className="text-xs text-muted">{subCount.done}/{subCount.total}</span>
-                          )}
-                        </div>
-                      </div>
 
-                      {/* Inline date picker */}
-                      <input
-                        type="date"
-                        value={task.due_date || ''}
-                        onChange={(e) => handleInlineDateChange(task, e.target.value)}
-                        className={`shrink-0 w-28 px-1 py-0.5 text-xs rounded border border-transparent hover:border-border-strong focus:border-secondary focus:outline-none ${
-                          overdue ? 'text-red-600 font-medium' : 'text-muted'
-                        }`}
-                      />
-
-                      {(task.description || subs.length > 0) && (
-                        <button onClick={() => toggleExpand(task.id)} className="shrink-0 text-muted hover:text-primary">
-                          {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
-                        </button>
-                      )}
-
-                      <button
-                        onClick={() => handleDelete(task.id)}
-                        className="shrink-0 text-muted hover:text-red-500 transition-colors"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-
-                    {isExpanded && (
-                      <div className="px-4 pb-3 pt-0 border-t border-border mx-4 mt-0">
-                        {task.description && (
-                          <p className="text-sm text-muted mt-3 whitespace-pre-wrap">{task.description}</p>
-                        )}
-                        {subs.length > 0 && (
-                          <div className="mt-3 space-y-1">
-                            <p className="text-xs text-muted uppercase font-semibold mb-1">Subtasks</p>
-                            {subs.map(sub => (
-                              <div key={sub.id} className="flex items-center gap-2 pl-2">
-                                <button onClick={() => handleStatusToggle(sub)} className="shrink-0">
-                                  {sub.status === 'completed' ? (
-                                    <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                                  ) : (
-                                    <Circle className="w-4 h-4 text-muted" />
-                                  )}
-                                </button>
-                                <span className={`text-sm ${sub.status === 'completed' ? 'text-muted line-through' : 'text-primary'}`}>
-                                  {sub.title}
+                          <div
+                            className="flex-1 min-w-0 cursor-pointer"
+                            onClick={() => setDetailTask(task)}
+                          >
+                            <p className={`text-sm font-medium ${task.status === 'completed' ? 'text-muted line-through' : 'text-primary'}`}>
+                              {task.title}
+                            </p>
+                            <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                              {tLabels.map(l => (
+                                <span
+                                  key={l.id}
+                                  className="text-[10px] font-medium px-1.5 py-0.5 rounded-full"
+                                  style={{ backgroundColor: l.color + '20', color: l.color }}
+                                >
+                                  {l.name}
                                 </span>
+                              ))}
+                              {client && (
+                                <span className="text-xs text-muted">{client.company_name || client.name}</span>
+                              )}
+                              {subCount && (
+                                <span className="text-xs text-muted">{subCount.done}/{subCount.total}</span>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Inline date picker */}
+                          <input
+                            type="date"
+                            value={task.due_date || ''}
+                            onChange={(e) => handleInlineDateChange(task, e.target.value)}
+                            className={`shrink-0 w-28 px-1 py-0.5 text-xs rounded border border-transparent hover:border-border-strong focus:border-secondary focus:outline-none ${
+                              overdue ? 'text-red-600 font-medium' : 'text-muted'
+                            }`}
+                          />
+
+                          {(task.description || subs.length > 0) && (
+                            <button onClick={() => toggleExpand(task.id)} className="shrink-0 text-muted hover:text-primary">
+                              {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                            </button>
+                          )}
+
+                          <button
+                            onClick={() => handleDelete(task.id)}
+                            className="shrink-0 text-muted hover:text-red-500 transition-colors"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+
+                        {isExpanded && (
+                          <div className="px-4 pb-3 pt-0 border-t border-border mx-4 mt-0">
+                            {task.description && (
+                              <p className="text-sm text-muted mt-3 whitespace-pre-wrap">{task.description}</p>
+                            )}
+                            {subs.length > 0 && (
+                              <div className="mt-3 space-y-1">
+                                <p className="text-xs text-muted uppercase font-semibold mb-1">Subtasks</p>
+                                {subs.map(sub => (
+                                  <div key={sub.id} className="flex items-center gap-2 pl-2">
+                                    <button onClick={() => handleStatusToggle(sub)} className="shrink-0">
+                                      {sub.status === 'completed' ? (
+                                        <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                                      ) : (
+                                        <Circle className="w-4 h-4 text-muted" />
+                                      )}
+                                    </button>
+                                    <span className={`text-sm ${sub.status === 'completed' ? 'text-muted line-through' : 'text-primary'}`}>
+                                      {sub.title}
+                                    </span>
+                                  </div>
+                                ))}
                               </div>
-                            ))}
+                            )}
                           </div>
                         )}
                       </div>
-                    )}
-                  </div>
-                )
-              })}
-            </div>
+                    )
+                  })}
+                </div>
 
-            {filtered.length === 0 && (
-              <p className="text-center text-muted py-8 text-sm">
-                {filter === 'completed' ? 'No completed tasks' : 'No tasks to show'}
-              </p>
+                {filtered.length === 0 && (
+                  <p className="text-center text-muted py-8 text-sm">
+                    {filter === 'completed' ? 'No completed tasks' : 'No tasks to show'}
+                  </p>
+                )}
+              </>
             )}
 
             <form onSubmit={handleQuickAdd} className="mt-3 flex items-center gap-2">

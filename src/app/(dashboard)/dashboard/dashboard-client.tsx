@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { format, isAfter } from 'date-fns'
-import { Circle, CheckCircle2, Clock, Flag, FolderKanban, FileText, CheckSquare, MessageSquare, X, Plus } from 'lucide-react'
+import { Circle, CheckCircle2, Clock, FolderKanban, FileText, CheckSquare, MessageSquare, X, Plus, AlertTriangle, CalendarClock, Loader2, CircleCheck } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import type { Task } from '@/types/database'
@@ -29,6 +29,13 @@ interface ClientRow {
   company_name: string
 }
 
+interface KpiCounts {
+  overdue: number
+  dueToday: number
+  inProgress: number
+  completed: number
+}
+
 interface DashboardClientProps {
   overdueTasks: Task[]
   dueSoonTasks: Task[]
@@ -36,13 +43,7 @@ interface DashboardClientProps {
   coachName: string | null
   activeProjects: ActiveProject[]
   clients: ClientRow[]
-}
-
-const priorityColors: Record<number, string> = {
-  1: 'text-red-500',
-  2: 'text-orange-500',
-  3: 'text-yellow-500',
-  4: 'text-gray-400',
+  kpiCounts: KpiCounts
 }
 
 const priorityLabels: Record<number, string> = { 1: 'P1', 2: 'P2', 3: 'P3', 4: 'P4' }
@@ -62,6 +63,7 @@ export function DashboardClient({
   coachName,
   activeProjects,
   clients,
+  kpiCounts,
 }: DashboardClientProps) {
   const [overdueTasks, setOverdueTasks] = useState(initialOverdue)
   const [dueSoonTasks, setDueSoonTasks] = useState(initialDueSoon)
@@ -157,10 +159,12 @@ export function DashboardClient({
     router.refresh()
   }
 
-  const all48hTasks = [
-    ...overdueTasks.filter(t => t.due_date),
-    ...dueSoonTasks.filter(t => !overdueTasks.some(o => o.id === t.id)),
-  ].slice(0, 15)
+  const kpiCards: { label: string; count: number; colorClass: string; icon: typeof AlertTriangle }[] = [
+    { label: 'Overdue', count: kpiCounts.overdue, colorClass: 'text-red-600', icon: AlertTriangle },
+    { label: 'Due Today', count: kpiCounts.dueToday, colorClass: 'text-muted', icon: CalendarClock },
+    { label: 'In Progress', count: kpiCounts.inProgress, colorClass: 'text-secondary', icon: Loader2 },
+    { label: 'Completed', count: kpiCounts.completed, colorClass: 'text-emerald-600', icon: CircleCheck },
+  ]
 
   return (
     <div className="p-4 sm:p-6 lg:p-8">
@@ -169,6 +173,22 @@ export function DashboardClient({
           Welcome back{coachName ? `, ${coachName.split(' ')[0]}` : ''}
         </h1>
         <p className="text-muted mt-1">Here&apos;s what&apos;s happening with your companies</p>
+      </div>
+
+      {/* KPI Strip */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+        {kpiCards.map((kpi) => {
+          const Icon = kpi.icon
+          return (
+            <div key={kpi.label} className="bg-surface border border-border rounded-xl p-4 shadow-card">
+              <div className="flex items-center gap-2 mb-1">
+                <Icon className={`w-4 h-4 ${kpi.colorClass}`} />
+                <span className={`text-xs font-medium ${kpi.colorClass}`}>{kpi.label}</span>
+              </div>
+              <p className="text-2xl font-bold text-primary">{kpi.count}</p>
+            </div>
+          )
+        })}
       </div>
 
       {/* Quick Actions Bar */}
@@ -245,10 +265,10 @@ export function DashboardClient({
           )}
         </div>
 
-        {/* Widget 2: Overdue and Upcoming Tasks */}
-        <div className="bg-surface border border-border rounded-xl p-6 shadow-card">
+        {/* Widget 2: Upcoming Tasks (consolidated) */}
+        <div className="bg-surface border border-border rounded-xl p-6 shadow-card lg:col-span-2">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-primary">Overdue & Upcoming</h2>
+            <h2 className="text-lg font-semibold text-primary">Upcoming Tasks</h2>
             <Link href="/tasks" className="text-sm text-secondary hover:text-secondary/80">View all</Link>
           </div>
           <div className="space-y-4">
@@ -256,13 +276,22 @@ export function DashboardClient({
               <div>
                 <h3 className="text-xs font-semibold text-red-600 uppercase tracking-wider mb-2">Overdue</h3>
                 <div className="space-y-2">
-                  {overdueTasks.slice(0, 5).map((task) => (
+                  {overdueTasks.map((task) => (
                     <div key={task.id} className="flex items-center gap-3 py-2 border-b border-border/50 last:border-0">
                       <button onClick={() => handleToggleTask(task)} className="shrink-0">
-                        <Circle className="w-4 h-4 text-red-500 hover:text-emerald-600" />
+                        {task.status === 'completed' ? (
+                          <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                        ) : (
+                          <Circle className="w-4 h-4 text-red-500 hover:text-emerald-600" />
+                        )}
                       </button>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm text-primary">{task.title}</p>
+                        <button
+                          onClick={() => setDetailTask(task)}
+                          className={`text-sm text-left hover:underline ${task.status === 'completed' ? 'text-muted line-through' : 'text-primary'}`}
+                        >
+                          {task.title}
+                        </button>
                         <p className="text-xs text-muted">
                           {task.client_id && clientMap[task.client_id]}
                           {task.due_date && (
@@ -278,84 +307,46 @@ export function DashboardClient({
               </div>
             )}
             <div>
-              <h3 className="text-xs font-semibold text-muted uppercase tracking-wider mb-2">Due in 48h</h3>
+              <h3 className="text-xs font-semibold text-muted uppercase tracking-wider mb-2">Due Soon</h3>
               {dueSoonTasks.length > 0 ? (
                 <div className="space-y-2">
-                  {dueSoonTasks.slice(0, 5).map((task) => (
-                    <div key={task.id} className="flex items-center gap-3 py-2 border-b border-border/50 last:border-0">
-                      <button onClick={() => handleToggleTask(task)} className="shrink-0">
-                        <Circle className="w-4 h-4 text-muted hover:text-emerald-600" />
-                      </button>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm text-primary">{task.title}</p>
-                        <p className="text-xs text-muted">
-                          {task.client_id && clientMap[task.client_id]}
-                          {task.due_date && format(new Date(task.due_date + 'T12:00:00'), 'MMM d')}
-                        </p>
+                  {dueSoonTasks.map((task) => {
+                    const overdue = task.due_date && isAfter(new Date(), new Date(task.due_date + 'T23:59:59'))
+                    return (
+                      <div key={task.id} className="flex items-center gap-3 py-2 border-b border-border/50 last:border-0">
+                        <button onClick={() => handleToggleTask(task)} className="shrink-0">
+                          {task.status === 'completed' ? (
+                            <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                          ) : (
+                            <Circle className="w-4 h-4 text-muted hover:text-emerald-600" />
+                          )}
+                        </button>
+                        <div className="flex-1 min-w-0">
+                          <button
+                            onClick={() => setDetailTask(task)}
+                            className={`text-sm text-left hover:underline ${task.status === 'completed' ? 'text-muted line-through' : 'text-primary'}`}
+                          >
+                            {task.title}
+                          </button>
+                          <p className="text-xs text-muted">
+                            {task.client_id && clientMap[task.client_id]}
+                            {task.due_date && (
+                              <span className={`ml-1 inline-flex items-center gap-1 ${overdue ? 'text-red-600' : ''}`}>
+                                <Clock className="w-3 h-3" />
+                                {format(new Date(task.due_date + 'T12:00:00'), 'MMM d')}
+                              </span>
+                            )}
+                          </p>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    )
+                  })}
                 </div>
               ) : (
                 <p className="text-sm text-muted">No tasks due in the next 48 hours</p>
               )}
             </div>
           </div>
-        </div>
-
-        {/* Widget 3: In the next 48 hours (all, overdue at top) */}
-        <div className="bg-surface border border-border rounded-xl p-6 shadow-card">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-primary">In the next 48 hours</h2>
-            <button
-              onClick={() => setShowTaskModal(true)}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-primary-10 border border-border text-primary text-sm font-medium rounded-lg hover:bg-primary-5 transition-colors"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              Add Task
-            </button>
-          </div>
-          {all48hTasks.length > 0 ? (
-            <div className="space-y-2">
-              {all48hTasks.map((task) => {
-                const overdue = task.due_date && isAfter(new Date(), new Date(task.due_date + 'T23:59:59'))
-                return (
-                  <div key={task.id} className="flex items-center gap-3 py-2 border-b border-border last:border-0">
-                    <button onClick={() => handleToggleTask(task)} className="shrink-0">
-                      {task.status === 'completed' ? (
-                        <CheckCircle2 className="w-5 h-5 text-emerald-600" />
-                      ) : (
-                        <Circle className="w-5 h-5 text-muted hover:text-emerald-600 transition-colors" />
-                      )}
-                    </button>
-                    <div className="flex-1 min-w-0">
-                      <button
-                        onClick={() => setDetailTask(task)}
-                        className={`text-sm text-left hover:underline ${task.status === 'completed' ? 'text-muted line-through' : 'text-primary'}`}
-                      >
-                        {task.title}
-                      </button>
-                      <div className="flex items-center gap-2 mt-0.5">
-                        {task.client_id && clientMap[task.client_id] && (
-                          <Link href={`/clients/${task.client_id}`} className="text-xs text-secondary hover:underline">{clientMap[task.client_id]}</Link>
-                        )}
-                        {task.due_date && (
-                          <span className={`flex items-center gap-1 text-xs ${overdue ? 'text-red-600' : 'text-muted'}`}>
-                            <Clock className="w-3 h-3" />
-                            {format(new Date(task.due_date + 'T12:00:00'), 'MMM d')}
-                            {overdue && <span className="bg-red-100 text-red-700 px-1.5 py-0.5 rounded text-xs">Overdue</span>}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    <Flag className={`w-4 h-4 shrink-0 ${priorityColors[task.priority_level] || priorityColors[4]}`} />
-                  </div>
-                )
-              })}
-            </div>
-          ) : (
-            <p className="text-muted text-sm">No tasks due soon</p>
-          )}
         </div>
       </div>
 

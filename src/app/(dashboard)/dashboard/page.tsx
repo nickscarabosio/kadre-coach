@@ -87,6 +87,39 @@ export default async function DashboardPage() {
 
   const clientsList = clients || []
 
+  // KPI counts
+  const [overdueCount, dueTodayCount, inProgressCount, completedCount] = await Promise.all([
+    supabase
+      .from('tasks')
+      .select('id', { count: 'exact', head: true })
+      .eq('coach_id', coachId)
+      .neq('status', 'completed')
+      .lt('due_date', todayIso()),
+    supabase
+      .from('tasks')
+      .select('id', { count: 'exact', head: true })
+      .eq('coach_id', coachId)
+      .neq('status', 'completed')
+      .eq('due_date', todayIso()),
+    supabase
+      .from('tasks')
+      .select('id', { count: 'exact', head: true })
+      .eq('coach_id', coachId)
+      .eq('status', 'in_progress'),
+    supabase
+      .from('tasks')
+      .select('id', { count: 'exact', head: true })
+      .eq('coach_id', coachId)
+      .eq('status', 'completed'),
+  ])
+
+  const kpiCounts = {
+    overdue: overdueCount.count ?? 0,
+    dueToday: dueTodayCount.count ?? 0,
+    inProgress: inProgressCount.count ?? 0,
+    completed: completedCount.count ?? 0,
+  }
+
   return (
     <DashboardClient
       overdueTasks={overdueTasks || []}
@@ -95,6 +128,7 @@ export default async function DashboardPage() {
       coachName={coach?.full_name || null}
       activeProjects={activeProjectsWithCompany}
       clients={clientsList}
+      kpiCounts={kpiCounts}
     />
   )
 }

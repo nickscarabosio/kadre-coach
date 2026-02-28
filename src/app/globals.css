@@ -16,6 +16,22 @@
   --secondary-20: rgba(0, 137, 202, 0.2);
 }
 
+[data-theme="dark"] {
+  --primary: #e2e8f0;
+  --secondary: #38bdf8;
+  --background: #0f172a;
+  --surface: #1e293b;
+  --foreground: #e2e8f0;
+  --muted: #94a3b8;
+  --border: rgba(226, 232, 240, 0.08);
+  --border-strong: rgba(226, 232, 240, 0.16);
+  --primary-5: rgba(226, 232, 240, 0.05);
+  --primary-10: rgba(226, 232, 240, 0.1);
+  --primary-20: rgba(226, 232, 240, 0.2);
+  --secondary-10: rgba(56, 189, 248, 0.1);
+  --secondary-20: rgba(56, 189, 248, 0.2);
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
