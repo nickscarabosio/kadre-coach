@@ -2,11 +2,17 @@
 
 import { useState } from 'react'
 import { format, isAfter } from 'date-fns'
-import { Circle, CheckCircle2, Clock, Flag, FolderKanban, FileText, CheckSquare, MessageSquare, X } from 'lucide-react'
+import { Circle, CheckCircle2, Clock, Flag, FolderKanban, FileText, CheckSquare, MessageSquare, X, Plus } from 'lucide-react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import type { Task } from '@/types/database'
-import { updateTaskStatus, completeRecurringTask } from '../tasks/actions'
+import { updateTaskStatus, completeRecurringTask, createTask } from '../tasks/actions'
 import { logUpdate, type UpdateClassification } from '../updates/actions'
+import { createCoachCheckIn } from '../clients/[id]/actions'
+import { Modal } from '@/components/ui/modal'
+import { DatePicker } from '@/components/ui/date-picker'
+import { DashboardTaskDetail } from './dashboard-task-detail'
+import { toast } from 'sonner'
 
 interface ActiveProject {
   id: string
@@ -39,6 +45,8 @@ const priorityColors: Record<number, string> = {
   4: 'text-gray-400',
 }
 
+const priorityLabels: Record<number, string> = { 1: 'P1', 2: 'P2', 3: 'P3', 4: 'P4' }
+
 const UPDATE_TYPES: { value: UpdateClassification; label: string }[] = [
   { value: 'communication', label: 'Communication' },
   { value: 'insight', label: 'Insight' },
@@ -60,18 +68,29 @@ export function DashboardClient({
   const [showLogUpdateModal, setShowLogUpdateModal] = useState(false)
   const [logUpdateLoading, setLogUpdateLoading] = useState(false)
   const [logUpdateError, setLogUpdateError] = useState<string | null>(null)
+  const [showTaskModal, setShowTaskModal] = useState(false)
+  const [showCheckInModal, setShowCheckInModal] = useState(false)
+  const [taskLoading, setTaskLoading] = useState(false)
+  const [checkInLoading, setCheckInLoading] = useState(false)
+  const [taskPriority, setTaskPriority] = useState(3)
+  const [detailTask, setDetailTask] = useState<Task | null>(null)
+  const [taskDueDate, setTaskDueDate] = useState<string>('')
+  const [checkInDate, setCheckInDate] = useState<string>(new Date().toISOString().split('T')[0])
+  const router = useRouter()
 
   const handleToggleTask = async (task: Task) => {
     if (task.is_recurring && task.status !== 'completed') {
       setOverdueTasks(prev => prev.filter(t => t.id !== task.id))
       setDueSoonTasks(prev => prev.filter(t => t.id !== task.id))
       await completeRecurringTask(task.id)
+      toast.success('Task completed')
     } else {
       const next = task.status === 'completed' ? 'pending' : 'completed'
       const upd = (t: Task) => (t.id === task.id ? { ...t, status: next } : t)
       setOverdueTasks(prev => prev.map(upd))
       setDueSoonTasks(prev => prev.map(upd))
       await updateTaskStatus(task.id, next)
+      toast.success(next === 'completed' ? 'Task completed' : 'Task reopened')
     }
   }
 
@@ -94,6 +113,48 @@ export function DashboardClient({
     setShowLogUpdateModal(false)
     form.reset()
     window.location.reload()
+  }
+
+  const handleCreateTask = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    setTaskLoading(true)
+    const fd = new FormData(e.currentTarget)
+    await createTask({
+      title: fd.get('title') as string,
+      description: (fd.get('description') as string) || null,
+      priority: `p${taskPriority}`,
+      priority_level: taskPriority,
+      due_date: taskDueDate || null,
+      client_id: (fd.get('client_id') as string) || null,
+    })
+    setShowTaskModal(false)
+    setTaskLoading(false)
+    setTaskPriority(3)
+    setTaskDueDate('')
+    toast.success('Task created')
+    router.refresh()
+  }
+
+  const handleCreateCheckIn = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    setCheckInLoading(true)
+    const fd = new FormData(e.currentTarget)
+    const clientId = fd.get('client_id') as string
+    if (!clientId) {
+      setCheckInLoading(false)
+      return
+    }
+    await createCoachCheckIn(clientId, {
+      check_in_type: fd.get('check_in_type') as string,
+      title: (fd.get('title') as string) || null,
+      notes: (fd.get('notes') as string) || null,
+      duration_minutes: fd.get('duration_minutes') ? parseInt(fd.get('duration_minutes') as string) : null,
+      check_in_date: checkInDate,
+    })
+    setShowCheckInModal(false)
+    setCheckInLoading(false)
+    toast.success('Check-in logged')
+    router.refresh()
   }
 
   const all48hTasks = [
@@ -120,20 +181,22 @@ export function DashboardClient({
           <FileText className="w-4 h-4" />
           Log Update
         </button>
-        <Link
-          href="/tasks"
+        <button
+          type="button"
+          onClick={() => setShowTaskModal(true)}
           className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary-10 border border-border text-primary text-sm font-medium hover:bg-primary-5 transition-colors"
         >
           <CheckSquare className="w-4 h-4" />
           Add Task
-        </Link>
-        <Link
-          href="/clients"
+        </button>
+        <button
+          type="button"
+          onClick={() => setShowCheckInModal(true)}
           className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary-10 border border-border text-primary text-sm font-medium hover:bg-primary-5 transition-colors"
         >
           <MessageSquare className="w-4 h-4" />
           Add Check-in
-        </Link>
+        </button>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
@@ -162,7 +225,7 @@ export function DashboardClient({
                       <td className="py-2 pr-2 text-primary font-medium">{project.title}</td>
                       <td className="py-2 pr-2 text-muted">{project.company_name}</td>
                       <td className="py-2 text-muted">
-                        {project.due_date ? format(new Date(project.due_date + 'T12:00:00'), 'MMM d') : '—'}
+                        {project.due_date ? format(new Date(project.due_date + 'T12:00:00'), 'MMM d') : '\u2014'}
                       </td>
                       <td className="py-2">
                         <Link
@@ -244,7 +307,13 @@ export function DashboardClient({
         <div className="bg-surface border border-border rounded-xl p-6 shadow-card">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold text-primary">In the next 48 hours</h2>
-            <Link href="/tasks" className="text-sm text-secondary hover:text-secondary/80">View all tasks</Link>
+            <button
+              onClick={() => setShowTaskModal(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-primary-10 border border-border text-primary text-sm font-medium rounded-lg hover:bg-primary-5 transition-colors"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              Add Task
+            </button>
           </div>
           {all48hTasks.length > 0 ? (
             <div className="space-y-2">
@@ -260,12 +329,15 @@ export function DashboardClient({
                       )}
                     </button>
                     <div className="flex-1 min-w-0">
-                      <p className={`text-sm ${task.status === 'completed' ? 'text-muted line-through' : 'text-primary'}`}>
+                      <button
+                        onClick={() => setDetailTask(task)}
+                        className={`text-sm text-left hover:underline ${task.status === 'completed' ? 'text-muted line-through' : 'text-primary'}`}
+                      >
                         {task.title}
-                      </p>
+                      </button>
                       <div className="flex items-center gap-2 mt-0.5">
                         {task.client_id && clientMap[task.client_id] && (
-                          <span className="text-xs text-muted">{clientMap[task.client_id]}</span>
+                          <Link href={`/clients/${task.client_id}`} className="text-xs text-secondary hover:underline">{clientMap[task.client_id]}</Link>
                         )}
                         {task.due_date && (
                           <span className={`flex items-center gap-1 text-xs ${overdue ? 'text-red-600' : 'text-muted'}`}>
@@ -353,12 +425,188 @@ export function DashboardClient({
                   disabled={logUpdateLoading}
                   className="px-4 py-2 rounded-lg bg-secondary text-white hover:bg-secondary/90 disabled:opacity-50"
                 >
-                  {logUpdateLoading ? 'Saving…' : 'Save'}
+                  {logUpdateLoading ? 'Saving\u2026' : 'Save'}
                 </button>
               </div>
             </form>
           </div>
         </div>
+      )}
+
+      {/* Add Task Modal */}
+      <Modal open={showTaskModal} onClose={() => setShowTaskModal(false)} title="Add Task">
+        <form onSubmit={handleCreateTask} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-primary mb-1.5">Title *</label>
+            <input
+              name="title"
+              type="text"
+              required
+              className="w-full px-4 py-2.5 bg-surface border border-border-strong rounded-lg text-primary placeholder-muted focus:outline-none focus:ring-2 focus:ring-secondary/40 focus:border-secondary"
+              placeholder="Task title"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-primary mb-1.5">Description</label>
+            <textarea
+              name="description"
+              rows={2}
+              className="w-full px-4 py-2.5 bg-surface border border-border-strong rounded-lg text-primary placeholder-muted focus:outline-none focus:ring-2 focus:ring-secondary/40 focus:border-secondary resize-none"
+              placeholder="Optional description"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-primary mb-1.5">Priority</label>
+            <div className="flex gap-2">
+              {[1, 2, 3, 4].map((p) => (
+                <button
+                  key={p}
+                  type="button"
+                  onClick={() => setTaskPriority(p)}
+                  className={`flex-1 py-2 rounded-lg text-sm font-medium border transition-colors ${
+                    taskPriority === p
+                      ? p === 1 ? 'bg-red-50 border-red-200 text-red-700'
+                        : p === 2 ? 'bg-orange-50 border-orange-200 text-orange-700'
+                        : p === 3 ? 'bg-yellow-50 border-yellow-200 text-yellow-700'
+                        : 'bg-primary-5 border-border-strong text-muted'
+                      : 'bg-surface border-border text-muted hover:bg-primary-5'
+                  }`}
+                >
+                  {priorityLabels[p]}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-sm font-medium text-primary mb-1.5">Due Date</label>
+              <DatePicker value={taskDueDate || null} onChange={setTaskDueDate} placeholder="Select due date" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-primary mb-1.5">Company</label>
+              <select
+                name="client_id"
+                defaultValue=""
+                className="w-full px-4 py-2.5 bg-surface border border-border-strong rounded-lg text-primary focus:outline-none focus:ring-2 focus:ring-secondary/40 focus:border-secondary"
+              >
+                <option value="">None</option>
+                {clients.map((c) => (
+                  <option key={c.id} value={c.id}>{c.company_name}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+          <div className="flex gap-3 pt-2">
+            <button
+              type="button"
+              onClick={() => setShowTaskModal(false)}
+              className="flex-1 px-4 py-2.5 bg-primary-5 hover:bg-primary-10 text-primary font-medium rounded-lg transition-colors border border-border-strong"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={taskLoading}
+              className="flex-1 px-4 py-2.5 bg-secondary hover:bg-secondary/90 disabled:bg-secondary/50 text-white font-medium rounded-lg transition-colors"
+            >
+              {taskLoading ? 'Creating...' : 'Add Task'}
+            </button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Add Check-in Modal */}
+      <Modal open={showCheckInModal} onClose={() => setShowCheckInModal(false)} title="Log Check-in">
+        <form onSubmit={handleCreateCheckIn} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-primary mb-1.5">Company *</label>
+            <select
+              name="client_id"
+              required
+              defaultValue=""
+              className="w-full px-4 py-2.5 bg-surface border border-border-strong rounded-lg text-primary focus:outline-none focus:ring-2 focus:ring-secondary/40 focus:border-secondary"
+            >
+              <option value="" disabled>Select company</option>
+              {clients.map((c) => (
+                <option key={c.id} value={c.id}>{c.company_name}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-primary mb-1.5">Type *</label>
+            <select
+              name="check_in_type"
+              defaultValue="call"
+              className="w-full px-4 py-2.5 bg-surface border border-border-strong rounded-lg text-primary focus:outline-none focus:ring-2 focus:ring-secondary/40 focus:border-secondary"
+            >
+              <option value="call">Call</option>
+              <option value="email">Email</option>
+              <option value="in-person">In Person</option>
+              <option value="video">Video</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-primary mb-1.5">Title</label>
+            <input
+              name="title"
+              type="text"
+              className="w-full px-4 py-2.5 bg-surface border border-border-strong rounded-lg text-primary placeholder-muted focus:outline-none focus:ring-2 focus:ring-secondary/40 focus:border-secondary"
+              placeholder="Weekly sync"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-primary mb-1.5">Notes</label>
+            <textarea
+              name="notes"
+              rows={3}
+              className="w-full px-4 py-2.5 bg-surface border border-border-strong rounded-lg text-primary placeholder-muted focus:outline-none focus:ring-2 focus:ring-secondary/40 focus:border-secondary resize-none"
+              placeholder="What was discussed..."
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-sm font-medium text-primary mb-1.5">Date *</label>
+              <DatePicker value={checkInDate} onChange={setCheckInDate} placeholder="Select date" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-primary mb-1.5">Duration (min)</label>
+              <input
+                name="duration_minutes"
+                type="number"
+                min="1"
+                className="w-full px-4 py-2.5 bg-surface border border-border-strong rounded-lg text-primary focus:outline-none focus:ring-2 focus:ring-secondary/40 focus:border-secondary"
+              />
+            </div>
+          </div>
+          <div className="flex gap-3 pt-2">
+            <button
+              type="button"
+              onClick={() => setShowCheckInModal(false)}
+              className="flex-1 px-4 py-2.5 bg-primary-5 hover:bg-primary-10 text-primary font-medium rounded-lg transition-colors border border-border-strong"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={checkInLoading}
+              className="flex-1 px-4 py-2.5 bg-secondary hover:bg-secondary/90 disabled:bg-secondary/50 text-white font-medium rounded-lg transition-colors"
+            >
+              {checkInLoading ? 'Saving...' : 'Log Check-in'}
+            </button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Task Detail Slide-over */}
+      {detailTask && (
+        <DashboardTaskDetail
+          task={detailTask}
+          clientMap={clientMap}
+          open={!!detailTask}
+          onClose={() => setDetailTask(null)}
+          onToggle={(task) => { handleToggleTask(task); setDetailTask(null) }}
+        />
       )}
     </div>
   )

@@ -7,6 +7,8 @@ import { Send, Mic, FileText, MessageSquare as MsgIcon, Plus, X, Phone, Mail, Vi
 import { useRouter } from 'next/navigation'
 import { sendMessage, createCoachCheckIn, createSessionNote } from './actions'
 import { ExpandableText } from '@/components/ui/expandable-text'
+import { DatePicker } from '@/components/ui/date-picker'
+import { toast } from 'sonner'
 
 interface ClientTabsProps {
   clientId: string
@@ -87,6 +89,7 @@ export function ClientTabs({ clientId, reflections, sessionNotes, messages, upda
     })
     setShowCheckInModal(false)
     setModalLoading(false)
+    toast.success('Check-in logged')
     router.refresh()
   }
 
@@ -102,6 +105,7 @@ export function ClientTabs({ clientId, reflections, sessionNotes, messages, upda
     })
     setShowNoteModal(false)
     setModalLoading(false)
+    toast.success('Note added')
     router.refresh()
   }
 
@@ -399,12 +403,11 @@ export function ClientTabs({ clientId, reflections, sessionNotes, messages, upda
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-primary mb-1.5">Date *</label>
-                  <input
+                  <DatePicker
+                    value={new Date().toISOString().split('T')[0]}
+                    onChange={() => {}}
                     name="check_in_date"
-                    type="date"
                     required
-                    defaultValue={new Date().toISOString().split('T')[0]}
-                    className="w-full px-4 py-2.5 bg-surface border border-border-strong rounded-lg text-primary focus:outline-none focus:ring-2 focus:ring-secondary/40 focus:border-secondary"
                   />
                 </div>
               </div>
@@ -461,12 +464,11 @@ export function ClientTabs({ clientId, reflections, sessionNotes, messages, upda
               </div>
               <div>
                 <label className="block text-sm font-medium text-primary mb-1.5">Session Date *</label>
-                <input
+                <DatePicker
+                  value={new Date().toISOString().split('T')[0]}
+                  onChange={() => {}}
                   name="session_date"
-                  type="date"
                   required
-                  defaultValue={new Date().toISOString().split('T')[0]}
-                  className="w-full px-4 py-2.5 bg-surface border border-border-strong rounded-lg text-primary focus:outline-none focus:ring-2 focus:ring-secondary/40 focus:border-secondary"
                 />
               </div>
               <div>

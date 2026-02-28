@@ -1,4 +1,5 @@
 import { HeaderNav } from '@/components/header-nav'
+import { Toaster } from 'sonner'
 
 export default function DashboardLayout({
   children,
@@ -11,6 +12,7 @@ export default function DashboardLayout({
       <main className="flex-1 overflow-auto">
         {children}
       </main>
+      <Toaster position="bottom-right" richColors closeButton />
     </div>
   )
 }

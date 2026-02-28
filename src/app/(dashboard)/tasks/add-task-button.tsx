@@ -4,6 +4,8 @@ import { useState } from 'react'
 import { Plus, X, Flag } from 'lucide-react'
 import { Client, TaskSection, TaskLabel, ClientProject } from '@/types/database'
 import { createTask } from './actions'
+import { DatePicker } from '@/components/ui/date-picker'
+import { toast } from 'sonner'
 
 interface AddTaskButtonProps {
   clients: Client[]
@@ -27,6 +29,7 @@ export function AddTaskButton({ clients, projects = [], sections, onTaskCreated 
   const [priorityLevel, setPriorityLevel] = useState(4)
   const [isRecurring, setIsRecurring] = useState(false)
   const [selectedClientId, setSelectedClientId] = useState('')
+  const [dueDate, setDueDate] = useState('')
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -39,7 +42,7 @@ export function AddTaskButton({ clients, projects = [], sections, onTaskCreated 
     const result = await createTask({
       title: formData.get('title') as string,
       description: formData.get('description') as string || null,
-      due_date: formData.get('due_date') as string || null,
+      due_date: dueDate || null,
       due_time: formData.get('due_time') as string || null,
       priority: priorityMap[priorityLevel] || 'medium',
       priority_level: priorityLevel,
@@ -60,6 +63,8 @@ export function AddTaskButton({ clients, projects = [], sections, onTaskCreated 
     setLoading(false)
     setPriorityLevel(4)
     setIsRecurring(false)
+    setDueDate('')
+    toast.success('Task created')
     onTaskCreated?.()
   }
 
@@ -136,11 +141,7 @@ export function AddTaskButton({ clients, projects = [], sections, onTaskCreated 
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-sm font-medium text-primary mb-1.5">Due Date</label>
-                  <input
-                    name="due_date"
-                    type="date"
-                    className="w-full px-4 py-2.5 bg-surface border border-border-strong rounded-lg text-primary focus:outline-none focus:ring-2 focus:ring-secondary/40 focus:border-secondary"
-                  />
+                  <DatePicker value={dueDate || null} onChange={setDueDate} placeholder="Set due date" />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-primary mb-1.5">Due Time</label>

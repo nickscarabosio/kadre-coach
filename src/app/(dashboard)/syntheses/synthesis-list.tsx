@@ -5,7 +5,7 @@ import { format } from 'date-fns'
 import { ChevronDown, ChevronUp, Mail, Send, Search } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import type { DailySynthesis } from '@/types/database'
-import { cleanMarkdownForDisplay } from '@/lib/markdown-clean'
+import { cleanMarkdownForDisplay, isErrorContent, stripMarkdown } from '@/lib/markdown-clean'
 import { sendSynthesisByEmail } from './actions'
 
 interface SynthesisListProps {
@@ -93,7 +93,9 @@ export function SynthesisList({ syntheses }: SynthesisListProps) {
                     {format(new Date(synthesis.synthesis_date + 'T12:00:00'), 'EEEE, MMMM d, yyyy')}
                   </p>
                   <p className="text-sm text-muted line-clamp-3">
-                    {synthesis.summary || synthesis.content}
+                    {isErrorContent(synthesis.summary || synthesis.content || '')
+                      ? 'Synthesis unavailable for this date'
+                      : stripMarkdown(synthesis.summary || synthesis.content || '')}
                   </p>
                 </div>
               </div>

@@ -5,6 +5,7 @@ import {
   FileText,
   Activity,
   FolderKanban,
+  ChevronRight,
 } from 'lucide-react'
 import { ClientTabs } from './client-tabs'
 import { ClientHeader } from './client-header'
@@ -55,42 +56,26 @@ export default async function ClientDetailPage({
       <ClientHeader client={client} />
 
       <div className="grid grid-cols-4 gap-4 mb-8">
-        <a href="#section-check-ins" className="bg-surface border border-border rounded-xl p-4 shadow-card hover:bg-primary-5 transition-colors block">
-          <div className="flex items-center gap-3">
-            <Activity className="w-5 h-5 text-secondary" />
-            <div>
-              <p className="text-2xl font-bold text-primary">{reflections?.length || 0}</p>
-              <p className="text-sm text-muted">Check-ins</p>
-            </div>
-          </div>
-        </a>
-        <a href="#section-notes" className="bg-surface border border-border rounded-xl p-4 shadow-card hover:bg-primary-5 transition-colors block">
-          <div className="flex items-center gap-3">
-            <FileText className="w-5 h-5 text-violet-600" />
-            <div>
-              <p className="text-2xl font-bold text-primary">{sessionNotes?.length || 0}</p>
-              <p className="text-sm text-muted">Session Notes</p>
-            </div>
-          </div>
-        </a>
-        <a href="#section-messages" className="bg-surface border border-border rounded-xl p-4 shadow-card hover:bg-primary-5 transition-colors block">
-          <div className="flex items-center gap-3">
-            <MessageSquare className="w-5 h-5 text-emerald-600" />
-            <div>
-              <p className="text-2xl font-bold text-primary">{messages?.length || 0}</p>
-              <p className="text-sm text-muted">Messages</p>
-            </div>
-          </div>
-        </a>
-        <a href="#section-projects" className="bg-surface border border-border rounded-xl p-4 shadow-card hover:bg-primary-5 transition-colors block">
-          <div className="flex items-center gap-3">
-            <FolderKanban className="w-5 h-5 text-amber-600" />
-            <div>
-              <p className="text-2xl font-bold text-primary">{projects?.length || 0}</p>
-              <p className="text-sm text-muted">Projects</p>
-            </div>
-          </div>
-        </a>
+        {[
+          { icon: Activity, color: 'text-secondary', count: reflections?.length || 0, label: 'Check-ins', href: '#section-check-ins' },
+          { icon: FileText, color: 'text-violet-600', count: sessionNotes?.length || 0, label: 'Session Notes', href: '#section-notes' },
+          { icon: MessageSquare, color: 'text-emerald-600', count: messages?.length || 0, label: 'Messages', href: '#section-messages' },
+          { icon: FolderKanban, color: 'text-amber-600', count: projects?.length || 0, label: 'Projects', href: '#section-projects' },
+        ].map((stat) => {
+          const Icon = stat.icon
+          return (
+            <a key={stat.label} href={stat.href} className="group bg-surface border border-border hover:border-secondary/30 rounded-xl p-4 shadow-card transition-colors block">
+              <div className="flex items-center gap-3">
+                <Icon className={`w-5 h-5 ${stat.color}`} />
+                <div className="flex-1">
+                  <p className="text-2xl font-bold text-primary">{stat.count}</p>
+                  <p className="text-sm text-muted">{stat.label}</p>
+                </div>
+                <ChevronRight className="w-4 h-4 text-muted opacity-0 group-hover:opacity-100 transition-opacity" />
+              </div>
+            </a>
+          )
+        })}
       </div>
 
       <TeamContacts clientId={id} contacts={contacts || []} />

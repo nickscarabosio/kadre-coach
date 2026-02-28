@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { Task, Client, TaskSection, TaskLabel, ClientProject } from '@/types/database'
 import { Flag, Trash2, RefreshCw } from 'lucide-react'
 import { SlideOver } from '@/components/ui/slide-over'
+import { DatePicker } from '@/components/ui/date-picker'
 import { updateTask, deleteTask } from './actions'
 
 interface TaskDetailPanelProps {
@@ -128,11 +129,10 @@ export function TaskDetailPanel({
           {/* Due Date */}
           <div>
             <label className="block text-xs font-semibold text-muted uppercase mb-1">Due Date</label>
-            <input
-              type="date"
-              value={task.due_date || ''}
-              onChange={(e) => saveField('due_date', e.target.value || null)}
-              className="w-full px-3 py-2 bg-surface border border-border-strong rounded-lg text-primary text-sm focus:outline-none focus:ring-2 focus:ring-secondary/40 focus:border-secondary"
+            <DatePicker
+              value={task.due_date || null}
+              onChange={(date) => saveField('due_date', date || null)}
+              placeholder="Set due date"
             />
           </div>
 

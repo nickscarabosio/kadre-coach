@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { Task, Client, TaskSection, TaskLabel, ClientProject } from '@/types/database'
-import { format, isAfter, isBefore, isToday, addDays } from 'date-fns'
+import { format, isAfter, isBefore, isToday, addDays, endOfDay, parseISO } from 'date-fns'
 import {
   Circle,
   CheckCircle2,
@@ -14,11 +14,12 @@ import {
 } from 'lucide-react'
 import { updateTaskStatus, deleteTask, createTask, completeRecurringTask, updateTask } from './actions'
 import { createClient } from '@/lib/supabase/client'
+import { toast } from 'sonner'
 import { AddTaskButton } from './add-task-button'
 import { SectionManager } from './section-manager'
 import { TaskDetailPanel } from './task-detail-panel'
 
-type FilterMode = 'all' | 'today' | 'upcoming' | 'completed'
+type FilterMode = 'all' | 'today' | 'overdue' | 'upcoming' | 'completed'
 
 const priorityColors: Record<number, string> = {
   1: 'text-red-500',
@@ -95,6 +96,7 @@ export function TaskBoard() {
     })
     .filter(t => {
       if (filter === 'today') return t.due_date && isToday(new Date(t.due_date + 'T12:00:00'))
+      if (filter === 'overdue') return t.due_date && isAfter(now, endOfDay(parseISO(t.due_date))) && t.status !== 'completed'
       if (filter === 'upcoming') return t.due_date && isAfter(new Date(t.due_date + 'T12:00:00'), now) && isBefore(new Date(t.due_date + 'T12:00:00'), addDays(now, 7))
       if (filter === 'completed') return t.status === 'completed'
       return true
@@ -115,17 +117,20 @@ export function TaskBoard() {
     if (task.is_recurring && task.status !== 'completed') {
       setTasks(prev => prev.map(t => t.id === task.id ? { ...t, status: 'completed', completed_at: new Date().toISOString() } : t))
       await completeRecurringTask(task.id)
+      toast.success('Task completed')
       fetchData()
     } else {
       const next = task.status === 'completed' ? 'pending' : 'completed'
       setTasks(prev => prev.map(t => t.id === task.id ? { ...t, status: next, completed_at: next === 'completed' ? new Date().toISOString() : null } : t))
       await updateTaskStatus(task.id, next)
+      toast.success(next === 'completed' ? 'Task completed' : 'Task reopened')
     }
   }
 
   const handleDelete = async (taskId: string) => {
     setTasks(prev => prev.filter(t => t.id !== taskId))
     await deleteTask(taskId)
+    toast.success('Task deleted')
   }
 
   const handleUpdate = (taskId: string, data: Partial<Task>) => {
@@ -182,9 +187,20 @@ export function TaskBoard() {
   const inProgressCount = allTasks.filter(t => t.status === 'in_progress').length
   const completedCount = allTasks.filter(t => t.status === 'completed').length
 
+  const overdueCount = allTasks.filter(t => t.due_date && isAfter(now, endOfDay(parseISO(t.due_date))) && t.status !== 'completed').length
+  const todayCount = allTasks.filter(t => t.due_date && isToday(new Date(t.due_date + 'T12:00:00')) && t.status !== 'completed').length
+
+  const sidebarFilters: { label: string; value: FilterMode; count?: number; isRed?: boolean }[] = [
+    { label: 'Today', value: 'today', count: todayCount },
+    { label: 'Overdue', value: 'overdue', count: overdueCount, isRed: true },
+    { label: 'Upcoming', value: 'upcoming' },
+    { label: 'Completed', value: 'completed', count: completedCount },
+  ]
+
   const filters: { label: string; value: FilterMode }[] = [
     { label: 'All', value: 'all' },
     { label: 'Today', value: 'today' },
+    { label: 'Overdue', value: 'overdue' },
     { label: 'Upcoming', value: 'upcoming' },
     { label: 'Completed', value: 'completed' },
   ]
@@ -237,24 +253,60 @@ export function TaskBoard() {
           <div className="w-48 shrink-0">
             <div className="bg-surface border border-border rounded-xl shadow-card p-3 sticky top-20">
               <button
-                onClick={() => setSelectedSection(null)}
+                onClick={() => { setSelectedSection(null); setFilter('all') }}
                 className={`w-full text-left px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  selectedSection === null ? 'bg-secondary-10 text-secondary' : 'text-muted hover:bg-primary-5 hover:text-primary'
+                  selectedSection === null && filter === 'all' ? 'bg-secondary-10 text-secondary' : 'text-muted hover:bg-primary-5 hover:text-primary'
                 }`}
               >
                 All Tasks
               </button>
-              {sections.map(s => (
+
+              {/* Filter shortcuts */}
+              <div className="my-2 border-t border-border pt-2 space-y-0.5">
+                {sidebarFilters.map(f => (
+                  <button
+                    key={f.value}
+                    onClick={() => { setFilter(f.value); setSelectedSection(null) }}
+                    className={`w-full flex items-center justify-between px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                      filter === f.value && selectedSection === null
+                        ? 'bg-secondary-10 text-secondary'
+                        : 'text-muted hover:bg-primary-5 hover:text-primary'
+                    }`}
+                  >
+                    {f.label}
+                    {f.count !== undefined && f.count > 0 && (
+                      <span className={`text-xs font-semibold px-1.5 py-0.5 rounded-full ${
+                        f.isRed ? 'bg-red-100 text-red-700' : 'bg-primary-5 text-muted'
+                      }`}>
+                        {f.count}
+                      </span>
+                    )}
+                  </button>
+                ))}
+              </div>
+
+              {/* Sections */}
+              <div className="border-t border-border pt-2 space-y-0.5">
                 <button
-                  key={s.id}
-                  onClick={() => setSelectedSection(s.id)}
+                  onClick={() => { setSelectedSection('inbox'); setFilter('all') }}
                   className={`w-full text-left px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    selectedSection === s.id ? 'bg-secondary-10 text-secondary' : 'text-muted hover:bg-primary-5 hover:text-primary'
+                    selectedSection === 'inbox' ? 'bg-secondary-10 text-secondary' : 'text-muted hover:bg-primary-5 hover:text-primary'
                   }`}
                 >
-                  {s.name}
+                  Inbox
                 </button>
-              ))}
+                {sections.map(s => (
+                  <button
+                    key={s.id}
+                    onClick={() => { setSelectedSection(s.id); setFilter('all') }}
+                    className={`w-full text-left px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                      selectedSection === s.id ? 'bg-secondary-10 text-secondary' : 'text-muted hover:bg-primary-5 hover:text-primary'
+                    }`}
+                  >
+                    {s.name}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
 
