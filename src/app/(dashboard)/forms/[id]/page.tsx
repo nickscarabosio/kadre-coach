@@ -18,7 +18,7 @@ export default async function FormDetailPage({ params }: { params: Promise<{ id:
     .order('submitted_at', { ascending: false })
 
   return (
-    <div className="p-8">
+    <div className="p-4 sm:p-6 lg:p-8">
       <Link href="/forms" className="inline-flex items-center gap-2 text-muted hover:text-primary mb-4">
         <ArrowLeft className="w-4 h-4" />
         Back to Forms

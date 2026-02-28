@@ -8,6 +8,7 @@ export async function createProject(clientId: string, data: {
   title: string
   description?: string | null
   status?: string
+  due_date?: string | null
 }) {
   const supabase = await createClient()
   const coachId = await getCoachId(supabase)
@@ -27,6 +28,7 @@ export async function createProject(clientId: string, data: {
     title: data.title,
     description: data.description || null,
     status: data.status || 'active',
+    due_date: data.due_date || null,
     sort_order: (lastProject?.[0]?.sort_order ?? -1) + 1,
   })
 

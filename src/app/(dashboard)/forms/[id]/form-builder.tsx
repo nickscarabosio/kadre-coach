@@ -123,12 +123,12 @@ export function FormBuilder({ form, submissions }: FormBuilderProps) {
   return (
     <div>
       {/* Header */}
-      <div className="flex items-start justify-between mb-6">
-        <div className="flex-1 mr-4">
-          <input value={title} onChange={e => setTitle(e.target.value)} className="text-3xl font-bold text-primary bg-transparent border-none outline-none w-full" placeholder="Form title" />
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-6">
+        <div className="flex-1 min-w-0 w-full sm:mr-4">
+          <input value={title} onChange={e => setTitle(e.target.value)} className="text-2xl sm:text-3xl font-bold text-primary bg-transparent border-none outline-none w-full" placeholder="Form title" />
           <input value={description} onChange={e => setDescription(e.target.value)} className="text-muted bg-transparent border-none outline-none w-full mt-1" placeholder="Add a description..." />
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 shrink-0">
           <button onClick={() => setShowPreview(true)} className="flex items-center gap-1.5 px-3 py-2 text-sm text-muted hover:text-primary hover:bg-primary-5 rounded-lg transition-colors"><Eye className="w-4 h-4" />Preview</button>
           <button onClick={handleDuplicate} className="flex items-center gap-1.5 px-3 py-2 text-sm text-muted hover:text-primary hover:bg-primary-5 rounded-lg transition-colors"><Copy className="w-4 h-4" />Duplicate</button>
           <button onClick={handleSave} disabled={saving} className="flex items-center gap-1.5 px-4 py-2 bg-secondary hover:bg-secondary/90 text-white font-medium rounded-lg transition-colors text-sm"><Save className="w-4 h-4" />{saving ? 'Saving...' : 'Save'}</button>

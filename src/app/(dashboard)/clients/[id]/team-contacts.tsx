@@ -109,7 +109,7 @@ export function TeamContacts({ clientId, contacts: initialContacts }: TeamContac
                   </p>
                   <p className="text-xs text-muted truncate">{contact.role || contact.email || '—'}</p>
                 </div>
-                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                <div className="flex items-center gap-1 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                   <button onClick={() => openEdit(contact)} className="p-1 text-muted hover:text-primary rounded">
                     <Pencil className="w-3.5 h-3.5" />
                   </button>

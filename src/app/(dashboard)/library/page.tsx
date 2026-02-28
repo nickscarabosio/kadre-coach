@@ -23,7 +23,7 @@ export default async function LibraryPage() {
     .select('*')
 
   return (
-    <div className="p-8">
+    <div className="p-4 sm:p-6 lg:p-8">
       <LibraryView
         documents={documents || []}
         clients={clients || []}

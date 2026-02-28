@@ -38,6 +38,7 @@ export function TaskBoard() {
   const [loading, setLoading] = useState(true)
 
   const [selectedSection, setSelectedSection] = useState<string | null>(null)
+  const [selectedProject, setSelectedProject] = useState<string | null>(null)
   const [filter, setFilter] = useState<FilterMode>('all')
   const [expandedTasks, setExpandedTasks] = useState<Set<string>>(new Set())
   const [search, setSearch] = useState('')
@@ -91,6 +92,7 @@ export function TaskBoard() {
   let filtered = tasks
     .filter(t => !t.parent_task_id)
     .filter(t => {
+      if (selectedProject) return t.project_id === selectedProject
       if (selectedSection === null) return true
       return t.section_id === selectedSection
     })
@@ -249,13 +251,71 @@ export function TaskBoard() {
         </div>
       ) : (
         <div className="flex gap-6">
+          {/* Mobile Filter Bar */}
+          <div className="md:hidden mb-4 w-full">
+            <div className="flex gap-2 overflow-x-auto pb-2">
+              {sidebarFilters.map(f => (
+                <button
+                  key={f.value}
+                  onClick={() => { setFilter(f.value); setSelectedSection(null); setSelectedProject(null) }}
+                  className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                    filter === f.value && selectedSection === null && !selectedProject
+                      ? 'bg-secondary text-white'
+                      : 'bg-surface border border-border text-muted'
+                  }`}
+                >
+                  {f.label}
+                  {f.count !== undefined && f.count > 0 && (
+                    <span className={`text-[10px] font-semibold px-1 py-0.5 rounded-full ${
+                      filter === f.value && selectedSection === null && !selectedProject
+                        ? 'bg-white/20 text-white'
+                        : f.isRed ? 'bg-red-100 text-red-700' : 'bg-primary-5 text-muted'
+                    }`}>
+                      {f.count}
+                    </span>
+                  )}
+                </button>
+              ))}
+            </div>
+            <div className="flex gap-2 mt-2">
+              <select
+                value={selectedProject ? `project:${selectedProject}` : selectedSection || ''}
+                onChange={(e) => {
+                  const val = e.target.value
+                  if (val.startsWith('project:')) {
+                    setSelectedProject(val.replace('project:', ''))
+                    setSelectedSection(null)
+                  } else {
+                    setSelectedProject(null)
+                    setSelectedSection(val || null)
+                  }
+                  setFilter('all')
+                }}
+                className="flex-1 px-3 py-2 bg-surface border border-border rounded-lg text-sm text-primary"
+              >
+                <option value="">All Tasks</option>
+                <option value="inbox">Inbox</option>
+                {sections.map(s => (
+                  <option key={s.id} value={s.id}>{s.name}</option>
+                ))}
+                {projects.length > 0 && (
+                  <optgroup label="Projects">
+                    {projects.map(p => (
+                      <option key={p.id} value={`project:${p.id}`}>{p.title}</option>
+                    ))}
+                  </optgroup>
+                )}
+              </select>
+            </div>
+          </div>
+
           {/* Section Sidebar */}
-          <div className="w-48 shrink-0">
+          <div className="hidden md:block w-48 shrink-0">
             <div className="bg-surface border border-border rounded-xl shadow-card p-3 sticky top-20">
               <button
-                onClick={() => { setSelectedSection(null); setFilter('all') }}
+                onClick={() => { setSelectedSection(null); setSelectedProject(null); setFilter('all') }}
                 className={`w-full text-left px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  selectedSection === null && filter === 'all' ? 'bg-secondary-10 text-secondary' : 'text-muted hover:bg-primary-5 hover:text-primary'
+                  selectedSection === null && !selectedProject && filter === 'all' ? 'bg-secondary-10 text-secondary' : 'text-muted hover:bg-primary-5 hover:text-primary'
                 }`}
               >
                 All Tasks
@@ -266,9 +326,9 @@ export function TaskBoard() {
                 {sidebarFilters.map(f => (
                   <button
                     key={f.value}
-                    onClick={() => { setFilter(f.value); setSelectedSection(null) }}
+                    onClick={() => { setFilter(f.value); setSelectedSection(null); setSelectedProject(null) }}
                     className={`w-full flex items-center justify-between px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                      filter === f.value && selectedSection === null
+                      filter === f.value && selectedSection === null && !selectedProject
                         ? 'bg-secondary-10 text-secondary'
                         : 'text-muted hover:bg-primary-5 hover:text-primary'
                     }`}
@@ -288,9 +348,9 @@ export function TaskBoard() {
               {/* Sections */}
               <div className="border-t border-border pt-2 space-y-0.5">
                 <button
-                  onClick={() => { setSelectedSection('inbox'); setFilter('all') }}
+                  onClick={() => { setSelectedSection('inbox'); setSelectedProject(null); setFilter('all') }}
                   className={`w-full text-left px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    selectedSection === 'inbox' ? 'bg-secondary-10 text-secondary' : 'text-muted hover:bg-primary-5 hover:text-primary'
+                    selectedSection === 'inbox' && !selectedProject ? 'bg-secondary-10 text-secondary' : 'text-muted hover:bg-primary-5 hover:text-primary'
                   }`}
                 >
                   Inbox
@@ -298,22 +358,40 @@ export function TaskBoard() {
                 {sections.map(s => (
                   <button
                     key={s.id}
-                    onClick={() => { setSelectedSection(s.id); setFilter('all') }}
+                    onClick={() => { setSelectedSection(s.id); setSelectedProject(null); setFilter('all') }}
                     className={`w-full text-left px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                      selectedSection === s.id ? 'bg-secondary-10 text-secondary' : 'text-muted hover:bg-primary-5 hover:text-primary'
+                      selectedSection === s.id && !selectedProject ? 'bg-secondary-10 text-secondary' : 'text-muted hover:bg-primary-5 hover:text-primary'
                     }`}
                   >
                     {s.name}
                   </button>
                 ))}
               </div>
+
+              {/* Projects */}
+              {projects.length > 0 && (
+                <div className="border-t border-border pt-2 space-y-0.5">
+                  <p className="px-3 py-1 text-[10px] uppercase font-semibold text-muted tracking-wider">Projects</p>
+                  {projects.map(p => (
+                    <button
+                      key={p.id}
+                      onClick={() => { setSelectedProject(p.id); setSelectedSection(null); setFilter('all') }}
+                      className={`w-full text-left px-3 py-1.5 rounded-lg text-sm font-medium transition-colors truncate ${
+                        selectedProject === p.id ? 'bg-secondary-10 text-secondary' : 'text-muted hover:bg-primary-5 hover:text-primary'
+                      }`}
+                    >
+                      {p.title}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
 
           {/* Main Task Area */}
-          <div className="flex-1">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="flex items-center gap-1 bg-surface border border-border rounded-lg p-1">
+          <div className="flex-1 min-w-0">
+            <div className="flex flex-wrap items-center gap-3 mb-4">
+              <div className="hidden md:flex items-center gap-1 bg-surface border border-border rounded-lg p-1">
                 {filters.map(f => (
                   <button
                     key={f.value}
@@ -331,7 +409,7 @@ export function TaskBoard() {
                 placeholder="Search tasks..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="flex-1 px-3 py-1.5 bg-surface border border-border rounded-lg text-sm text-primary placeholder-muted focus:outline-none focus:ring-2 focus:ring-secondary/40"
+                className="w-full sm:w-auto sm:flex-1 px-3 py-1.5 bg-surface border border-border rounded-lg text-sm text-primary placeholder-muted focus:outline-none focus:ring-2 focus:ring-secondary/40"
               />
             </div>
 

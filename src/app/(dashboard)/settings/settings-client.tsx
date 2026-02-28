@@ -27,15 +27,36 @@ export function SettingsClient({ coach, prefs, snippets }: SettingsClientProps) 
   const [activeTab, setActiveTab] = useState<'profile' | 'notifications' | 'snippets' | 'integrations' | 'team'>('profile')
 
   return (
-    <div className="p-8 max-w-3xl">
+    <div className="p-4 sm:p-6 lg:p-8 max-w-3xl">
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-primary">Settings</h1>
         <p className="text-muted mt-1">Manage your account and preferences</p>
       </div>
 
+      {/* Mobile horizontal tab bar */}
+      <div className="md:hidden mb-6 flex overflow-x-auto gap-1 bg-surface border border-border rounded-xl shadow-card p-1">
+        {tabs.map(tab => {
+          const Icon = tab.icon
+          return (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
+                activeTab === tab.id
+                  ? 'bg-secondary text-white'
+                  : 'text-muted hover:bg-primary-5 hover:text-primary'
+              }`}
+            >
+              <Icon className="w-3.5 h-3.5" />
+              {tab.label}
+            </button>
+          )
+        })}
+      </div>
+
       <div className="flex gap-6">
         {/* Tab Sidebar */}
-        <div className="w-48 shrink-0">
+        <div className="hidden md:block w-48 shrink-0">
           <div className="bg-surface border border-border rounded-xl shadow-card p-2 sticky top-20">
             {tabs.map(tab => {
               const Icon = tab.icon

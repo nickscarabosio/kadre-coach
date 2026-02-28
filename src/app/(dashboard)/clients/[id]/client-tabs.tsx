@@ -118,12 +118,12 @@ export function ClientTabs({ clientId, reflections, sessionNotes, messages, upda
   return (
     <>
       <div id="client-tabs" className="bg-surface border border-border rounded-xl shadow-card scroll-mt-4">
-        <div className="flex border-b border-border sticky top-16 z-10 bg-surface rounded-t-xl">
+        <div className="flex overflow-x-auto border-b border-border sticky top-16 z-10 bg-surface rounded-t-xl">
           {tabs.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`px-6 py-4 text-sm font-medium transition-colors relative ${
+              className={`px-3 sm:px-6 py-4 text-sm font-medium transition-colors relative whitespace-nowrap ${
                 activeTab === tab.id
                   ? 'text-primary'
                   : 'text-muted hover:text-primary'
@@ -214,7 +214,7 @@ export function ClientTabs({ clientId, reflections, sessionNotes, messages, upda
                               {reflection.goal_progress === 'yes' ? 'On track' : reflection.goal_progress === 'partial' ? 'Partial progress' : 'Off track'}
                             </span>
                           </div>
-                          <div className="grid grid-cols-4 gap-4 mb-3">
+                          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-3">
                             <div>
                               <p className="text-xs text-muted uppercase">Energy</p>
                               <p className="text-lg font-semibold text-primary">{reflection.energy_level}/10</p>

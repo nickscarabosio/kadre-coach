@@ -156,7 +156,7 @@ export function ClientList({ clients }: ClientListProps) {
           <p className="text-muted">{search || statusFilter || industryFilter || lastActivityFilter ? 'Try adjusting filters' : 'Add your first company to get started'}</p>
         </div>
       ) : (
-        <div className="bg-surface border border-border rounded-xl shadow-card overflow-hidden">
+        <div className="bg-surface border border-border rounded-xl shadow-card overflow-x-auto">
           <table className="w-full">
             <thead>
               <tr className="border-b border-border bg-primary-5">

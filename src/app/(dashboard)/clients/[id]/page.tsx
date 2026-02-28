@@ -40,6 +40,7 @@ export default async function ClientDetailPage({
     { data: coachCheckIns },
     { data: projects },
     { data: openTasks },
+    { data: projectTasks },
   ] = await Promise.all([
     supabase.from('reflections').select('*').eq('client_id', id).order('created_at', { ascending: false }).limit(10),
     supabase.from('session_notes').select('*').eq('client_id', id).order('session_date', { ascending: false }).limit(10),
@@ -49,13 +50,20 @@ export default async function ClientDetailPage({
     supabase.from('coach_check_ins').select('*').eq('client_id', id).order('check_in_date', { ascending: false }).limit(20),
     supabase.from('client_projects').select('*').eq('client_id', id).order('sort_order'),
     supabase.from('tasks').select('*').eq('client_id', id).neq('status', 'completed').order('due_date', { ascending: true, nullsFirst: false }).limit(15),
+    supabase.from('tasks').select('*').eq('client_id', id).not('project_id', 'is', null).order('sort_order'),
   ])
 
+  // Fetch milestones for all projects
+  const projectIds = (projects || []).map(p => p.id)
+  const { data: milestones } = projectIds.length > 0
+    ? await supabase.from('project_milestones').select('*').in('project_id', projectIds).order('sort_order')
+    : { data: [] as any[] }
+
   return (
-    <div className="p-8">
+    <div className="p-4 sm:p-6 lg:p-8">
       <ClientHeader client={client} />
 
-      <div className="grid grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         {[
           { icon: Activity, color: 'text-secondary', count: reflections?.length || 0, label: 'Check-ins', href: '#section-check-ins' },
           { icon: FileText, color: 'text-violet-600', count: sessionNotes?.length || 0, label: 'Session Notes', href: '#section-notes' },
@@ -81,12 +89,12 @@ export default async function ClientDetailPage({
       <TeamContacts clientId={id} contacts={contacts || []} />
 
       {/* Next Steps / Open Tasks */}
-      <OpenTasksSection clientId={id} tasks={openTasks || []} />
+      <OpenTasksSection clientId={id} tasks={openTasks || []} projectMap={Object.fromEntries((projects || []).map(p => [p.id, p.title]))} />
 
       {/* Project Board */}
       <div id="section-projects" className="bg-surface border border-border rounded-xl p-6 shadow-card mb-6 scroll-mt-4">
         <h2 className="text-lg font-semibold text-primary mb-4">Projects</h2>
-        <ProjectBoard clientId={id} projects={projects || []} />
+        <ProjectBoard clientId={id} projects={projects || []} projectTasks={projectTasks || []} milestones={milestones || []} />
       </div>
 
       <ClientTabs

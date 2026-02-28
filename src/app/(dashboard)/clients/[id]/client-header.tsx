@@ -70,13 +70,13 @@ export function ClientHeader({ client: initialClient }: ClientHeaderProps) {
           Back to Companies
         </Link>
 
-        <div className="flex items-start gap-6">
-          <div className="w-20 h-20 rounded-xl bg-primary-5 flex items-center justify-center">
-            <Building className="w-10 h-10 text-primary/60" />
+        <div className="flex flex-col sm:flex-row items-start gap-4 sm:gap-6">
+          <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl bg-primary-5 flex items-center justify-center shrink-0">
+            <Building className="w-8 h-8 sm:w-10 sm:h-10 text-primary/60" />
           </div>
-          <div className="flex-1">
-            <div className="flex items-center gap-3 mb-2">
-              <h1 className="text-3xl font-bold text-primary">{client.company_name || client.name}</h1>
+          <div className="flex-1 min-w-0">
+            <div className="flex flex-wrap items-center gap-3 mb-2">
+              <h1 className="text-2xl sm:text-3xl font-bold text-primary">{client.company_name || client.name}</h1>
               <span className={`px-3 py-1 rounded-full text-sm font-medium border ${statusColors[client.status] || statusColors.active}`}>
                 {client.status === 'at_risk' ? 'At Risk' : client.status.charAt(0).toUpperCase() + client.status.slice(1)}
               </span>
@@ -117,7 +117,7 @@ export function ClientHeader({ client: initialClient }: ClientHeaderProps) {
             </div>
           </div>
 
-          <div className="text-right" title="Based on check-ins, updates, and task completion over the last 4 weeks.">
+          <div className="text-left sm:text-right shrink-0" title="Based on check-ins, updates, and task completion over the last 4 weeks.">
             <p className="text-sm text-muted mb-1">Engagement Score</p>
             <div className="flex items-center gap-2">
               <div className="w-32 h-3 bg-primary-5 rounded-full overflow-hidden">

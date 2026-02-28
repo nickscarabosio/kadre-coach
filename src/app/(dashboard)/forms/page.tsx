@@ -27,7 +27,7 @@ export default async function FormsPage() {
   }, {} as Record<string, number>)
 
   return (
-    <div className="p-8">
+    <div className="p-4 sm:p-6 lg:p-8">
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-2xl font-bold text-primary">Forms</h1>

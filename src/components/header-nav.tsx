@@ -183,7 +183,7 @@ export function HeaderNav() {
         </Link>
       </div>
 
-      <nav className="hidden md:flex items-center gap-1 absolute left-1/2 -translate-x-1/2">
+      <nav className="hidden md:flex items-center gap-1 lg:absolute lg:left-1/2 lg:-translate-x-1/2">
         {directLinks.map((item) => {
           const active = isLinkActive(item.href)
           const Icon = item.icon

@@ -317,7 +317,7 @@ export function UpdatesFeed({ updates: initialUpdates, clients }: UpdatesFeedPro
                               <span className="text-xs text-muted">
                                 {format(new Date(update.created_at), 'h:mm a')}
                               </span>
-                              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity ml-auto">
+                              <div className="flex items-center gap-1 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity ml-auto">
                                 <button
                                   onClick={(e) => { e.stopPropagation(); handleEditStart(update) }}
                                   className="p-1 text-muted hover:text-primary rounded transition-colors"

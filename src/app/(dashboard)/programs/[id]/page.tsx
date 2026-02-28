@@ -58,7 +58,7 @@ export default async function ProgramDetailPage({
     : { data: [] }
 
   return (
-    <div className="p-8">
+    <div className="p-4 sm:p-6 lg:p-8">
       <Link
         href="/programs"
         className="inline-flex items-center gap-2 text-muted hover:text-primary mb-4"

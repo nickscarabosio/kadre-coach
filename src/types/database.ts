@@ -396,6 +396,7 @@ export type Database = {
           coach_id: string
           client_id: string | null
           project_id: string | null
+          milestone_id: string | null
           assigned_to_coach_id: string | null
           title: string
           description: string | null
@@ -420,6 +421,7 @@ export type Database = {
           coach_id: string
           client_id?: string | null
           project_id?: string | null
+          milestone_id?: string | null
           assigned_to_coach_id?: string | null
           title: string
           description?: string | null
@@ -444,6 +446,7 @@ export type Database = {
           coach_id?: string
           client_id?: string | null
           project_id?: string | null
+          milestone_id?: string | null
           assigned_to_coach_id?: string | null
           title?: string
           description?: string | null
@@ -1100,6 +1103,47 @@ export type Database = {
         }
         Relationships: []
       }
+      project_milestones: {
+        Row: {
+          id: string
+          project_id: string
+          coach_id: string
+          title: string
+          description: string | null
+          due_date: string | null
+          status: string
+          sort_order: number
+          completed_at: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          project_id: string
+          coach_id: string
+          title: string
+          description?: string | null
+          due_date?: string | null
+          status?: string
+          sort_order?: number
+          completed_at?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          project_id?: string
+          coach_id?: string
+          title?: string
+          description?: string | null
+          due_date?: string | null
+          status?: string
+          sort_order?: number
+          completed_at?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       form_submissions: {
         Row: {
           id: string
@@ -1176,6 +1220,7 @@ export type Document = Database['public']['Tables']['documents']['Row']
 export type DocumentShare = Database['public']['Tables']['document_shares']['Row']
 export type Form = Database['public']['Tables']['forms']['Row']
 export type FormSubmission = Database['public']['Tables']['form_submissions']['Row']
+export type ProjectMilestone = Database['public']['Tables']['project_milestones']['Row']
 
 export type NotificationPreferences = {
   email_daily_synthesis: boolean

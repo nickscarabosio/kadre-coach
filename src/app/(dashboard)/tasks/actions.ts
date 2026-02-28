@@ -13,6 +13,7 @@ export async function createTask(data: {
   priority_level: number
   client_id?: string | null
   project_id?: string | null
+  milestone_id?: string | null
   section_id?: string | null
   parent_task_id?: string | null
   is_recurring?: boolean
@@ -50,6 +51,7 @@ export async function createTask(data: {
     priority_level: data.priority_level,
     client_id: data.client_id || null,
     project_id: data.project_id || null,
+    milestone_id: data.milestone_id || null,
     section_id: data.section_id || null,
     parent_task_id: data.parent_task_id || null,
     is_recurring: data.is_recurring || false,

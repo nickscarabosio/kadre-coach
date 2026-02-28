@@ -127,7 +127,7 @@ export function MessageList({
   return (
     <div className="flex flex-col md:flex-row bg-surface border border-border rounded-xl shadow-card overflow-hidden" style={{ minHeight: '400px', height: 'calc(100vh - 200px)' }}>
       {/* Conversation list - left on desktop, top on mobile */}
-      <div className="w-full md:w-80 border-b md:border-b-0 md:border-r border-border overflow-y-auto shrink-0">
+      <div className="w-full md:w-80 border-b md:border-b-0 md:border-r border-border overflow-y-auto shrink-0 max-h-[40vh] md:max-h-none">
         {items.map((item) => {
           const isSelected = selectedItem &&
             (item.type === 'conversation' && selectedItem.type === 'conversation' && item.id === selectedItem.id) ||
