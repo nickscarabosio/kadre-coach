@@ -6,6 +6,8 @@ import { PhaseBuilder } from './phase-builder'
 import { AssignDialog } from './assign-dialog'
 import { Client, Enrollment, AssignedAssignment } from '@/types/database'
 
+export const dynamic = 'force-dynamic'
+
 export default async function ProgramDetailPage({
   params,
 }: {

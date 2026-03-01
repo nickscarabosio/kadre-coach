@@ -1,8 +1,9 @@
 import { createClient } from '@/lib/supabase/server'
 import { getCoachId } from '@/lib/supabase/get-coach-id'
 import { FileEdit } from 'lucide-react'
-import { AddFormButton } from './add-form-button'
 import { FormsList } from './forms-list'
+
+export const dynamic = 'force-dynamic'
 
 export default async function FormsPage() {
   const supabase = await createClient()
@@ -33,7 +34,6 @@ export default async function FormsPage() {
           <h1 className="text-2xl font-bold text-primary">Forms</h1>
           <p className="text-muted mt-1">{forms?.length || 0} forms</p>
         </div>
-        <AddFormButton />
       </div>
 
       {forms && forms.length > 0 ? (
@@ -43,7 +43,6 @@ export default async function FormsPage() {
           <FileEdit className="w-12 h-12 text-muted mx-auto mb-4" />
           <h3 className="text-primary font-semibold mb-2">No forms yet</h3>
           <p className="text-muted mb-4">Create your first form to collect responses</p>
-          <AddFormButton />
         </div>
       )}
     </div>

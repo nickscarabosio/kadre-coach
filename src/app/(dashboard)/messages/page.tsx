@@ -5,6 +5,8 @@ import { MessageSquare } from 'lucide-react'
 import { NewMessageModal } from './new-message-modal'
 import type { Message } from '@/types/database'
 
+export const dynamic = 'force-dynamic'
+
 export default async function MessagesPage() {
   const supabase = await createClient()
   const coachId = await getCoachId(supabase)

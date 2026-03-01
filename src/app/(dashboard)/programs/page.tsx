@@ -1,8 +1,9 @@
 import { createClient } from '@/lib/supabase/server'
 import { getCoachId } from '@/lib/supabase/get-coach-id'
 import { BookOpen } from 'lucide-react'
-import { AddProgramButton } from './add-program-button'
 import { ProgramsList } from './programs-list'
+
+export const dynamic = 'force-dynamic'
 
 export default async function ProgramsPage() {
   const supabase = await createClient()
@@ -44,7 +45,6 @@ export default async function ProgramsPage() {
           <h1 className="text-2xl font-bold text-primary">Programs</h1>
           <p className="text-muted mt-1">{programs?.length || 0} programs</p>
         </div>
-        <AddProgramButton />
       </div>
 
       {programs && programs.length > 0 ? (
@@ -58,7 +58,6 @@ export default async function ProgramsPage() {
           <BookOpen className="w-12 h-12 text-muted mx-auto mb-4" />
           <h3 className="text-primary font-semibold mb-2">No programs yet</h3>
           <p className="text-muted mb-4">Create your first coaching program</p>
-          <AddProgramButton />
         </div>
       )}
     </div>

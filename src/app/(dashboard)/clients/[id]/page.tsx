@@ -13,6 +13,8 @@ import { TeamContacts } from './team-contacts'
 import { ProjectBoard } from './project-board'
 import { OpenTasksSection } from './open-tasks-section'
 
+export const dynamic = 'force-dynamic'
+
 export default async function ClientDetailPage({
   params,
 }: {

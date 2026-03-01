@@ -3,6 +3,8 @@ import { redirect } from 'next/navigation'
 import { SettingsClient } from './settings-client'
 import type { NotificationPreferences } from '@/types/database'
 
+export const dynamic = 'force-dynamic'
+
 const DEFAULT_PREFS: NotificationPreferences = {
   email_daily_synthesis: true,
   email_check_in_alerts: true,

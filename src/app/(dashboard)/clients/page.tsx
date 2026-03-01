@@ -4,6 +4,8 @@ import { Building } from 'lucide-react'
 import { AddClientButton } from './add-client-button'
 import { ClientList } from './client-list'
 
+export const dynamic = 'force-dynamic'
+
 export default async function ClientsPage() {
   const supabase = await createClient()
   const coachId = await getCoachId(supabase)

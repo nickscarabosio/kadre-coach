@@ -3,6 +3,8 @@ import { getCoachId } from '@/lib/supabase/get-coach-id'
 import { subHours, addHours } from 'date-fns'
 import { DashboardClient } from './dashboard-client'
 
+export const dynamic = 'force-dynamic'
+
 const todayIso = () => new Date().toISOString().split('T')[0]
 
 export default async function DashboardPage() {

@@ -2,6 +2,8 @@ import { createAdminClient } from '@/lib/supabase/server'
 import { notFound } from 'next/navigation'
 import { PublicForm } from './public-form'
 
+export const dynamic = 'force-dynamic'
+
 export default async function PublicFormPage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params
   const supabase = createAdminClient()

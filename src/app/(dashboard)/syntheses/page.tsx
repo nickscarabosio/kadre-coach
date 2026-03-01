@@ -3,6 +3,8 @@ import { getCoachId } from '@/lib/supabase/get-coach-id'
 import { BookOpen } from 'lucide-react'
 import { SynthesisList } from './synthesis-list'
 
+export const dynamic = 'force-dynamic'
+
 export default async function SynthesesPage() {
   const supabase = await createClient()
   const coachId = await getCoachId(supabase)

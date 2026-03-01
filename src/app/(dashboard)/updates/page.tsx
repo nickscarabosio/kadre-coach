@@ -3,6 +3,8 @@ import { getCoachId } from '@/lib/supabase/get-coach-id'
 import { Radio } from 'lucide-react'
 import { UpdatesFeed } from './updates-feed'
 
+export const dynamic = 'force-dynamic'
+
 export default async function UpdatesPage() {
   const supabase = await createClient()
   const coachId = await getCoachId(supabase)
