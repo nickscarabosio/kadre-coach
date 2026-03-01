@@ -66,7 +66,7 @@ export function MessageSidebar({ open, onClose }: MessageSidebarProps) {
 
     const convIds = participants.map(p => p.conversation_id)
 
-    const { data: convs, error } = await supabase
+    const { data: convs, error } = await (supabase
       .from('conversations')
       .select(`
         id,
@@ -79,10 +79,10 @@ export function MessageSidebar({ open, onClose }: MessageSidebarProps) {
       `)
       .in('id', convIds)
       .order('updated_at', { ascending: false })
-      .limit(10)
+      .limit(10) as any)
 
     if (convs) {
-      setConversations(convs.map(c => {
+      setConversations(convs.map((c: any) => {
         const lastMsg = (c.messages as any[])?.sort((a, b) => 
           new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
         )[0]
