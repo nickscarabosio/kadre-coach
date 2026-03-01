@@ -19,12 +19,21 @@ interface ClientListProps {
 
 const statusColors: Record<string, string> = {
   active: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-  at_risk: 'bg-amber-50 text-amber-700 border-amber-200',
+  off_track: 'bg-red-50 text-red-700 border-red-200',
+  needs_attention: 'bg-amber-50 text-amber-700 border-amber-200',
   inactive: 'bg-primary-5 text-muted border-border',
   completed: 'bg-secondary-10 text-secondary border-secondary-20',
 }
 
-type SortKey = 'company' | 'industry' | 'status' | 'latest_update' | 'engagement' | 'upcoming' | 'overdue'
+const statusLabels: Record<string, string> = {
+  active: 'On-Track',
+  off_track: 'Off-Track',
+  needs_attention: 'Needs Attention',
+  inactive: 'Inactive',
+  completed: 'Completed',
+}
+
+type SortKey = 'company' | 'status' | 'latest_update' | 'engagement' | 'upcoming' | 'overdue'
 
 function stripHashtagFromUpdate(text: string | null | undefined): string {
   if (!text) return ''
@@ -34,23 +43,15 @@ function stripHashtagFromUpdate(text: string | null | undefined): string {
 export function ClientList({ clients }: ClientListProps) {
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('')
-  const [industryFilter, setIndustryFilter] = useState<string>('')
   const [lastActivityFilter, setLastActivityFilter] = useState<string>('') // '', '7', '30', '90'
   const [sortBy, setSortBy] = useState<SortKey>('company')
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc')
 
-  const industries = useMemo(() => {
-    const set = new Set<string>()
-    clients.forEach((c) => c.industry && set.add(c.industry))
-    return Array.from(set).sort()
-  }, [clients])
-
   const filtered = useMemo(() => {
     let list = clients.filter((c) => {
       const q = search.toLowerCase()
-      if (q && !(c.company_name || c.name).toLowerCase().includes(q) && !c.email.toLowerCase().includes(q) && !(c.industry && c.industry.toLowerCase().includes(q))) return false
+      if (q && !(c.company_name || c.name).toLowerCase().includes(q) && !c.email.toLowerCase().includes(q)) return false
       if (statusFilter && c.status !== statusFilter) return false
-      if (industryFilter && c.industry !== industryFilter) return false
       if (lastActivityFilter) {
         const days = parseInt(lastActivityFilter, 10)
         const cutoff = subDays(new Date(), days)
@@ -66,10 +67,6 @@ export function ClientList({ clients }: ClientListProps) {
         case 'company':
           av = (a.company_name || a.name || '').toLowerCase()
           bv = (b.company_name || b.name || '').toLowerCase()
-          return mult * (av < bv ? -1 : av > bv ? 1 : 0)
-        case 'industry':
-          av = (a.industry || '').toLowerCase()
-          bv = (b.industry || '').toLowerCase()
           return mult * (av < bv ? -1 : av > bv ? 1 : 0)
         case 'status':
           av = (a.status || '').toLowerCase()
@@ -90,7 +87,7 @@ export function ClientList({ clients }: ClientListProps) {
       }
     })
     return list
-  }, [clients, search, statusFilter, industryFilter, lastActivityFilter, sortBy, sortDir])
+  }, [clients, search, statusFilter, lastActivityFilter, sortBy, sortDir])
 
   const handleSort = (key: SortKey) => {
     if (sortBy === key) setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'))
@@ -122,20 +119,11 @@ export function ClientList({ clients }: ClientListProps) {
           className="px-3 py-2.5 bg-surface border border-border rounded-lg text-sm text-primary"
         >
           <option value="">All statuses</option>
-          <option value="active">Active</option>
-          <option value="at_risk">At Risk</option>
+          <option value="active">On-Track</option>
+          <option value="off_track">Off-Track</option>
+          <option value="needs_attention">Needs Attention</option>
           <option value="inactive">Inactive</option>
           <option value="completed">Completed</option>
-        </select>
-        <select
-          value={industryFilter}
-          onChange={(e) => setIndustryFilter(e.target.value)}
-          className="px-3 py-2.5 bg-surface border border-border rounded-lg text-sm text-primary min-w-[140px]"
-        >
-          <option value="">All industries</option>
-          {industries.map((ind) => (
-            <option key={ind} value={ind}>{ind}</option>
-          ))}
         </select>
         <select
           value={lastActivityFilter}
@@ -163,11 +151,6 @@ export function ClientList({ clients }: ClientListProps) {
                 <th className="text-left px-6 py-3">
                   <button type="button" onClick={() => handleSort('company')} className="text-xs font-semibold text-muted uppercase tracking-wide hover:text-primary flex items-center gap-1">
                     Company <SortIcon column="company" />
-                  </button>
-                </th>
-                <th className="text-left px-6 py-3">
-                  <button type="button" onClick={() => handleSort('industry')} className="text-xs font-semibold text-muted uppercase tracking-wide hover:text-primary flex items-center gap-1">
-                    Industry <SortIcon column="industry" />
                   </button>
                 </th>
                 <th className="text-left px-6 py-3">
@@ -211,14 +194,15 @@ export function ClientList({ clients }: ClientListProps) {
                       </div>
                     </Link>
                   </td>
-                  <td className="px-6 py-3 text-sm text-muted">{client.industry || '—'}</td>
                   <td className="px-6 py-3">
                     <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium border ${statusColors[client.status] || statusColors.active}`}>
-                      {client.status === 'at_risk' ? 'At Risk' : client.status.charAt(0).toUpperCase() + client.status.slice(1)}
+                      {statusLabels[client.status] || statusLabels.active}
                     </span>
                   </td>
                   <td className="px-6 py-3">
-                    <p className="text-xs text-muted line-clamp-1 max-w-xs">{stripHashtagFromUpdate(client.latest_update) || '—'}</p>
+                    <p className="text-xs text-muted">
+                      {client.latest_update_at ? format(new Date(client.latest_update_at), 'MMM d, yyyy') : '—'}
+                    </p>
                   </td>
                   <td className="px-6 py-3">
                     <Link

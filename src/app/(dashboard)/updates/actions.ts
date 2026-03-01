@@ -64,3 +64,29 @@ export async function updateUpdateContent(updateId: string, content: string) {
   revalidatePath('/dashboard')
   return { success: true }
 }
+
+export async function updateUpdateMetadata(updateId: string, metadata: any) {
+  const supabase = await createClient()
+  const coachId = await getCoachId(supabase)
+
+  if (!coachId) return { error: 'Not authenticated' }
+
+  const { data: currentUpdate } = await supabase.from('telegram_updates')
+    .select('action_items')
+    .eq('id', updateId)
+    .single()
+
+  const currentMetadata = (currentUpdate?.action_items as any) || {}
+  const newMetadata = { ...currentMetadata, ...metadata }
+
+  const { error } = await supabase.from('telegram_updates')
+    .update({ action_items: newMetadata })
+    .eq('id', updateId)
+    .eq('coach_id', coachId)
+
+  if (error) return { error: error.message }
+
+  revalidatePath('/updates')
+  revalidatePath('/dashboard')
+  return { success: true }
+}

@@ -12,6 +12,7 @@ import {
   ChevronRight,
 } from 'lucide-react'
 import { GlobalSearch } from '@/components/global-search'
+import { MessageSidebar } from '@/components/message-sidebar'
 import { getBreadcrumbLabel } from '@/lib/nav-config'
 
 interface HeaderNavProps {
@@ -23,6 +24,7 @@ export function HeaderNav({ onMenuClick }: HeaderNavProps) {
   const router = useRouter()
   const supabase = createClient()
   const [avatarOpen, setAvatarOpen] = useState(false)
+  const [messagesOpen, setMessagesOpen] = useState(false)
   const [coach, setCoach] = useState<{ avatar_url: string | null; full_name: string | null }>({ avatar_url: null, full_name: null })
   const avatarRef = useRef<HTMLDivElement>(null)
 
@@ -82,16 +84,19 @@ export function HeaderNav({ onMenuClick }: HeaderNavProps) {
       {/* Right: search + messages + avatar */}
       <div className="flex items-center gap-2 sm:gap-3 shrink-0">
         <GlobalSearch />
-        <Link
-          href="/messages"
+        <button
+          type="button"
+          onClick={() => setMessagesOpen(true)}
           className={`p-2 rounded-lg transition-colors ${
-            pathname.startsWith('/messages')
+            messagesOpen || pathname.startsWith('/messages')
               ? 'text-secondary bg-secondary-10'
               : 'text-muted hover:text-primary hover:bg-primary-5'
           }`}
         >
           <MessageSquare className="w-5 h-5" />
-        </Link>
+        </button>
+
+        <MessageSidebar open={messagesOpen} onClose={() => setMessagesOpen(false)} />
 
         <div ref={avatarRef} className="relative">
           <button
