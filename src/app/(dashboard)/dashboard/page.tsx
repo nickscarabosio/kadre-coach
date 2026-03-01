@@ -88,7 +88,7 @@ export default async function DashboardPage() {
   const clientsList = clients || []
 
   // KPI counts
-  const [overdueCount, dueTodayCount, inProgressCount, completedCount] = await Promise.all([
+  const [overdueCount, dueTodayCount, activeProjectsCount, recentMessagesCount] = await Promise.all([
     supabase
       .from('tasks')
       .select('id', { count: 'exact', head: true })
@@ -102,22 +102,22 @@ export default async function DashboardPage() {
       .neq('status', 'completed')
       .eq('due_date', todayIso()),
     supabase
-      .from('tasks')
+      .from('client_projects')
       .select('id', { count: 'exact', head: true })
       .eq('coach_id', coachId)
-      .eq('status', 'in_progress'),
+      .eq('status', 'active'),
     supabase
-      .from('tasks')
+      .from('messages')
       .select('id', { count: 'exact', head: true })
       .eq('coach_id', coachId)
-      .eq('status', 'completed'),
+      .gte('created_at', twentyFourHoursAgo),
   ])
 
   const kpiCounts = {
     overdue: overdueCount.count ?? 0,
     dueToday: dueTodayCount.count ?? 0,
-    inProgress: inProgressCount.count ?? 0,
-    completed: completedCount.count ?? 0,
+    activeProjects: activeProjectsCount.count ?? 0,
+    recentMessages: recentMessagesCount.count ?? 0,
   }
 
   const { data: coaches } = await supabase

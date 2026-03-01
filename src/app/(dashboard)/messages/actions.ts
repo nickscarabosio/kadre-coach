@@ -67,7 +67,7 @@ export async function createConversation(data: {
   }
 
   // Send initial message
-  // We need a client_id for legacy compat — use the conversation's client_id or first contact's client
+  // We need a client_id for legacy compatibility.
   let messageClientId = data.client_id
 
   if (!messageClientId && data.participant_contact_ids?.length) {
@@ -79,16 +79,30 @@ export async function createConversation(data: {
     messageClientId = contact?.client_id || null
   }
 
-  if (messageClientId) {
-    await supabase.from('messages').insert({
-      coach_id: coachId,
-      client_id: messageClientId,
-      conversation_id: conversation.id,
-      content: data.initial_message,
-      sender_type: 'coach',
-      sender_coach_id: user.id,
-    })
+  // Coach-to-coach conversations may not include contacts, so fall back to any client
+  // associated with the sender to ensure the initial message is always persisted.
+  if (!messageClientId) {
+    const { data: anyClient } = await supabase
+      .from('clients')
+      .select('id')
+      .eq('coach_id', coachId)
+      .limit(1)
+      .single()
+    messageClientId = anyClient?.id || null
   }
+
+  if (!messageClientId) return { error: 'No client found for message' }
+
+  const { error: messageError } = await supabase.from('messages').insert({
+    coach_id: coachId,
+    client_id: messageClientId,
+    conversation_id: conversation.id,
+    content: data.initial_message,
+    sender_type: 'coach',
+    sender_coach_id: user.id,
+  })
+
+  if (messageError) return { error: messageError.message }
 
   revalidatePath('/messages')
   return { success: true, conversationId: conversation.id }

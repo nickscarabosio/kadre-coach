@@ -5,7 +5,7 @@ import { format } from 'date-fns'
 import { MessageSquare, Send, User, Building2, Plus, ArrowRight, Loader2, X } from 'lucide-react'
 import { SlideOver } from '@/components/ui/slide-over'
 import { createClient } from '@/lib/supabase/client'
-import { sendMessageToConversation, createConversation } from '@/app/(dashboard)/messages/actions'
+import { createConversation } from '@/app/(dashboard)/messages/actions'
 import { toast } from 'sonner'
 import Link from 'next/link'
 
@@ -50,7 +50,10 @@ export function MessageSidebar({ open, onClose }: MessageSidebarProps) {
     setLoading(true)
     const supabase = createClient()
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return
+    if (!user) {
+      setLoading(false)
+      return
+    }
 
     // Get conversations where the coach is a participant
     const { data: participants } = await supabase
