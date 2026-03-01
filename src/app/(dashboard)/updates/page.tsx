@@ -20,6 +20,11 @@ export default async function UpdatesPage() {
     .eq('coach_id', coachId)
     .order('company_name')
 
+  const { data: coaches } = await supabase
+    .from('coaches')
+    .select('id, full_name')
+    .order('full_name')
+
   return (
     <div className="p-4 sm:p-6 lg:p-8">
       <div className="flex items-center justify-between mb-8">
@@ -30,7 +35,7 @@ export default async function UpdatesPage() {
       </div>
 
       {updates && updates.length > 0 ? (
-        <UpdatesFeed updates={updates} clients={clients || []} />
+        <UpdatesFeed updates={updates} clients={clients || []} coaches={coaches || []} />
       ) : (
         <div className="text-center py-12 bg-surface border border-border rounded-xl shadow-card">
           <Radio className="w-12 h-12 text-muted mx-auto mb-4" />

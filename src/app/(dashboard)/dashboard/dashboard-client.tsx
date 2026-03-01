@@ -12,6 +12,7 @@ import { createCoachCheckIn } from '../clients/[id]/actions'
 import { Modal } from '@/components/ui/modal'
 import { DatePicker } from '@/components/ui/date-picker'
 import { DashboardTaskDetail } from './dashboard-task-detail'
+import { DashboardProjectDetail } from './dashboard-project-detail'
 import { toast } from 'sonner'
 
 interface ActiveProject {
@@ -41,9 +42,11 @@ interface DashboardClientProps {
   dueSoonTasks: Task[]
   clientMap: Record<string, string>
   coachName: string | null
+  coachId: string | null
   activeProjects: ActiveProject[]
   clients: ClientRow[]
   kpiCounts: KpiCounts
+  coaches: { id: string, full_name: string }[]
 }
 
 const priorityLabels: Record<number, string> = { 1: 'P1', 2: 'P2', 3: 'P3', 4: 'P4' }
@@ -56,14 +59,36 @@ const UPDATE_TYPES: { value: UpdateClassification; label: string }[] = [
   { value: 'blocker', label: 'Blocker' },
 ]
 
+const projectStatusLabels: Record<string, string> = {
+  active: 'On-Track',
+  off_track: 'Off-Track',
+  needs_attention: 'Needs Attention',
+  completed: 'Completed',
+  idea: 'Idea',
+  planning: 'Planning',
+  on_hold: 'On Hold',
+}
+
+const statusColorClasses: Record<string, string> = {
+  active: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+  off_track: 'bg-red-50 text-red-700 border-red-200',
+  needs_attention: 'bg-amber-50 text-amber-700 border-amber-200',
+  completed: 'bg-secondary-10 text-secondary border-secondary-20',
+  idea: 'bg-primary-5 text-muted border-border',
+  planning: 'bg-blue-50 text-blue-700 border-blue-200',
+  on_hold: 'bg-gray-50 text-gray-700 border-gray-200',
+}
+
 export function DashboardClient({
   overdueTasks: initialOverdue,
   dueSoonTasks: initialDueSoon,
   clientMap,
   coachName,
+  coachId,
   activeProjects,
   clients,
   kpiCounts,
+  coaches,
 }: DashboardClientProps) {
   const [overdueTasks, setOverdueTasks] = useState(initialOverdue)
   const [dueSoonTasks, setDueSoonTasks] = useState(initialDueSoon)
@@ -76,7 +101,9 @@ export function DashboardClient({
   const [checkInLoading, setCheckInLoading] = useState(false)
   const [taskPriority, setTaskPriority] = useState(3)
   const [detailTask, setDetailTask] = useState<Task | null>(null)
+  const [detailProject, setDetailProject] = useState<ActiveProject | null>(null)
   const [taskDueDate, setTaskDueDate] = useState<string>('')
+  const [taskAssignees, setTaskAssignees] = useState<string[]>(coachId ? [coachId] : [])
   const [checkInDate, setCheckInDate] = useState<string>(new Date().toISOString().split('T')[0])
   const router = useRouter()
 
@@ -121,6 +148,8 @@ export function DashboardClient({
     e.preventDefault()
     setTaskLoading(true)
     const fd = new FormData(e.currentTarget)
+
+    // Pass assignees - we'll update the action to handle an array
     await createTask({
       title: fd.get('title') as string,
       description: (fd.get('description') as string) || null,
@@ -128,11 +157,14 @@ export function DashboardClient({
       priority_level: taskPriority,
       due_date: taskDueDate || null,
       client_id: (fd.get('client_id') as string) || null,
-    })
+      assigned_to_coach_ids: taskAssignees,
+    } as any)
+
     setShowTaskModal(false)
     setTaskLoading(false)
     setTaskPriority(3)
     setTaskDueDate('')
+    setTaskAssignees(coachId ? [coachId] : [])
     toast.success('Task created')
     router.refresh()
   }
@@ -159,11 +191,11 @@ export function DashboardClient({
     router.refresh()
   }
 
-  const kpiCards: { label: string; count: number; colorClass: string; icon: typeof AlertTriangle }[] = [
-    { label: 'Overdue', count: kpiCounts.overdue, colorClass: 'text-red-600', icon: AlertTriangle },
-    { label: 'Due Today', count: kpiCounts.dueToday, colorClass: 'text-muted', icon: CalendarClock },
-    { label: 'In Progress', count: kpiCounts.inProgress, colorClass: 'text-secondary', icon: Loader2 },
-    { label: 'Completed', count: kpiCounts.completed, colorClass: 'text-emerald-600', icon: CircleCheck },
+  const kpiCards: { label: string; count: number; colorClass: string; icon: typeof AlertTriangle; href?: string }[] = [
+    { label: 'Overdue', count: kpiCounts.overdue, colorClass: 'text-red-600', icon: AlertTriangle, href: '/tasks?filter=overdue' },
+    { label: 'Due Today', count: kpiCounts.dueToday, colorClass: 'text-muted', icon: CalendarClock, href: '/tasks?filter=today' },
+    { label: 'Active Projects', count: kpiCounts.inProgress, colorClass: 'text-secondary', icon: Loader2, href: '/clients' },
+    { label: 'Recent Messages', count: kpiCounts.completed, colorClass: 'text-emerald-600', icon: CircleCheck, href: '/messages' },
   ]
 
   return (
@@ -179,13 +211,31 @@ export function DashboardClient({
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
         {kpiCards.map((kpi) => {
           const Icon = kpi.icon
-          return (
-            <div key={kpi.label} className="bg-surface border border-border rounded-xl p-4 shadow-card">
+          const CardContent = (
+            <>
               <div className="flex items-center gap-2 mb-1">
                 <Icon className={`w-4 h-4 ${kpi.colorClass}`} />
                 <span className={`text-xs font-medium ${kpi.colorClass}`}>{kpi.label}</span>
               </div>
               <p className="text-2xl font-bold text-primary">{kpi.count}</p>
+            </>
+          )
+
+          if (kpi.href) {
+            return (
+              <Link
+                key={kpi.label}
+                href={kpi.href}
+                className="bg-surface border border-border rounded-xl p-4 shadow-card hover:bg-primary-5 transition-colors"
+              >
+                {CardContent}
+              </Link>
+            )
+          }
+
+          return (
+            <div key={kpi.label} className="bg-surface border border-border rounded-xl p-4 shadow-card">
+              {CardContent}
             </div>
           )
         })}
@@ -234,26 +284,33 @@ export function DashboardClient({
                 <thead>
                   <tr className="text-left text-muted border-b border-border">
                     <th className="pb-2 pr-2 font-medium">Project</th>
-                    <th className="pb-2 pr-2 font-medium">Client</th>
-                    <th className="pb-2 font-medium">End date</th>
+                    <th className="pb-2 pr-2 font-medium">Start Date</th>
+                    <th className="pb-2 pr-2 font-medium">Status</th>
                     <th className="pb-2 w-14" />
                   </tr>
                 </thead>
                 <tbody>
                   {activeProjects.slice(0, 8).map((project) => (
                     <tr key={project.id} className="border-b border-border/50 last:border-0">
-                      <td className="py-2 pr-2 text-primary font-medium">{project.title}</td>
-                      <td className="py-2 pr-2 text-muted">{project.company_name}</td>
-                      <td className="py-2 text-muted">
-                        {project.due_date ? format(new Date(project.due_date + 'T12:00:00'), 'MMM d') : '\u2014'}
+                      <td className="py-2 pr-2">
+                        <p className="text-primary font-medium">{project.title}</p>
+                        <p className="text-xs text-muted truncate max-w-[120px]">{project.company_name}</p>
+                      </td>
+                      <td className="py-2 pr-2 text-muted">
+                        {format(new Date(project.created_at), 'MMM d')}
+                      </td>
+                      <td className="py-2 pr-2">
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium border ${statusColorClasses[project.status] || statusColorClasses.active}`}>
+                          {projectStatusLabels[project.status] || projectStatusLabels.active}
+                        </span>
                       </td>
                       <td className="py-2">
-                        <Link
-                          href={`/clients/${project.client_id}#section-projects`}
+                        <button
+                          onClick={() => setDetailProject(project)}
                           className="text-secondary hover:underline text-xs"
                         >
                           View
-                        </Link>
+                        </button>
                       </td>
                     </tr>
                   ))}
@@ -487,6 +544,32 @@ export function DashboardClient({
               </select>
             </div>
           </div>
+          <div>
+            <label className="block text-sm font-medium text-primary mb-1.5">Assignees</label>
+            <div className="flex flex-wrap gap-2 p-2.5 bg-surface border border-border-strong rounded-lg">
+              {coaches.map((c) => {
+                const isSelected = taskAssignees.includes(c.id)
+                return (
+                  <button
+                    key={c.id}
+                    type="button"
+                    onClick={() => {
+                      if (isSelected) setTaskAssignees(prev => prev.filter(id => id !== c.id))
+                      else setTaskAssignees(prev => [...prev, c.id])
+                    }}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
+                      isSelected
+                        ? 'bg-secondary-10 border-secondary text-secondary'
+                        : 'bg-primary-5 border-border text-muted hover:bg-primary-10'
+                    }`}
+                  >
+                    {c.full_name}
+                  </button>
+                )
+              })}
+            </div>
+            <p className="text-xs text-muted mt-1.5">Assign this task to one or more coaches</p>
+          </div>
           <div className="flex gap-3 pt-2">
             <button
               type="button"
@@ -597,6 +680,15 @@ export function DashboardClient({
           open={!!detailTask}
           onClose={() => setDetailTask(null)}
           onToggle={(task) => { handleToggleTask(task); setDetailTask(null) }}
+        />
+      )}
+
+      {/* Project Detail Slide-over */}
+      {detailProject && (
+        <DashboardProjectDetail
+          project={detailProject}
+          open={!!detailProject}
+          onClose={() => setDetailProject(null)}
         />
       )}
     </div>

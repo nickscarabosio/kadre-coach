@@ -19,6 +19,7 @@ export async function createTask(data: {
   is_recurring?: boolean
   recurrence_rule?: string | null
   assigned_to_coach_id?: string | null
+  assigned_to_coach_ids?: string[] | null
 }) {
   const supabase = await createClient()
   const coachId = await getCoachId(supabase)
@@ -41,7 +42,11 @@ export async function createTask(data: {
 
   const { data: lastTask } = await query
 
-  const { error } = await supabase.from('tasks').insert({
+  const coachIds = data.assigned_to_coach_ids && data.assigned_to_coach_ids.length > 0
+    ? data.assigned_to_coach_ids
+    : [data.assigned_to_coach_id || coachId]
+
+  const tasksToInsert = coachIds.map((id, index) => ({
     coach_id: coachId,
     title: data.title,
     description: data.description || null,
@@ -56,9 +61,11 @@ export async function createTask(data: {
     parent_task_id: data.parent_task_id || null,
     is_recurring: data.is_recurring || false,
     recurrence_rule: data.recurrence_rule || null,
-    assigned_to_coach_id: data.assigned_to_coach_id || null,
-    sort_order: (lastTask?.[0]?.sort_order ?? -1) + 1,
-  })
+    assigned_to_coach_id: id,
+    sort_order: (lastTask?.[0]?.sort_order ?? -1) + 1 + index,
+  }))
+
+  const { error } = await supabase.from('tasks').insert(tasksToInsert)
 
   if (error) return { error: error.message }
 

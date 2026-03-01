@@ -22,7 +22,7 @@ export const navItems: NavItem[] = [
   { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
 
   // Companies
-  { label: 'All Companies', href: '/clients', icon: Building2, section: 'Companies' },
+  { label: 'Clients', href: '/clients', icon: Building2, section: 'Companies' },
   { label: 'People', href: '/people', icon: Users, section: 'Companies' },
 
   // Updates

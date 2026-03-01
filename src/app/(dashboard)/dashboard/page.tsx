@@ -120,15 +120,22 @@ export default async function DashboardPage() {
     completed: completedCount.count ?? 0,
   }
 
+  const { data: coaches } = await supabase
+    .from('coaches')
+    .select('id, full_name')
+    .order('full_name')
+
   return (
     <DashboardClient
       overdueTasks={overdueTasks || []}
       dueSoonTasks={dueSoonTasks || []}
       clientMap={clientMap}
       coachName={coach?.full_name || null}
+      coachId={coachId}
       activeProjects={activeProjectsWithCompany}
       clients={clientsList}
       kpiCounts={kpiCounts}
+      coaches={coaches || []}
     />
   )
 }
