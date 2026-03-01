@@ -3,7 +3,7 @@
 import { useState, useMemo } from 'react'
 import Link from 'next/link'
 import { Building, Search, AlertCircle, Clock, CalendarCheck, ChevronUp, ChevronDown } from 'lucide-react'
-import { formatDistanceToNow, subDays, isAfter } from 'date-fns'
+import { format, formatDistanceToNow, subDays, isAfter } from 'date-fns'
 import type { Client } from '@/types/database'
 
 interface EnrichedClient extends Client {
@@ -141,7 +141,7 @@ export function ClientList({ clients }: ClientListProps) {
         <div className="text-center py-12 bg-surface border border-border rounded-xl shadow-card">
           <Building className="w-12 h-12 text-muted mx-auto mb-4" />
           <h3 className="text-primary font-semibold mb-2">No companies found</h3>
-          <p className="text-muted">{search || statusFilter || industryFilter || lastActivityFilter ? 'Try adjusting filters' : 'Add your first company to get started'}</p>
+          <p className="text-muted">{search || statusFilter || lastActivityFilter ? 'Try adjusting filters' : 'Add your first company to get started'}</p>
         </div>
       ) : (
         <div className="bg-surface border border-border rounded-xl shadow-card overflow-x-auto">

@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { format } from 'date-fns'
-import { Mic, FileText, MessageSquare, Tag, Trash2, Pencil, X, Check, Plus, Flag, Search, Filter } from 'lucide-react'
+import { Mic, FileText, MessageSquare, Tag, Trash2, Pencil, X, Check, Plus, Flag } from 'lucide-react'
 import Link from 'next/link'
 import type { TelegramUpdate } from '@/types/database'
 import { ExpandableText } from '@/components/ui/expandable-text'
@@ -289,7 +289,29 @@ export function UpdatesFeed({ updates: initialUpdates, clients, coaches }: Updat
                       <div className="flex-1 min-w-0">
                         {isEditing ? (
                           <div>
-                            {/* ... existing editing UI ... */}
+                            <textarea
+                              value={editContent}
+                              onChange={(e) => setEditContent(e.target.value)}
+                              rows={3}
+                              className="w-full px-3 py-2 bg-surface border border-border-strong rounded-lg text-sm text-primary focus:outline-none focus:ring-2 focus:ring-secondary/40 resize-none"
+                              autoFocus
+                            />
+                            <div className="flex items-center gap-2 mt-2">
+                              <button
+                                onClick={() => handleEditSave(update.id)}
+                                className="flex items-center gap-1 px-3 py-1 bg-secondary text-white text-xs font-medium rounded-lg hover:bg-secondary/90 transition-colors"
+                              >
+                                <Check className="w-3 h-3" />
+                                Save
+                              </button>
+                              <button
+                                onClick={handleEditCancel}
+                                className="flex items-center gap-1 px-3 py-1 bg-primary-5 text-primary text-xs font-medium rounded-lg hover:bg-primary-10 transition-colors"
+                              >
+                                <X className="w-3 h-3" />
+                                Cancel
+                              </button>
+                            </div>
                           </div>
                         ) : (
                           <>
